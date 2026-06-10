@@ -17,7 +17,7 @@ Every prompt and artifact request passed to OpenSpec must include the output-lan
 
 ### 1. Explore Ideas
 
-First generate phase-specific CodeGraph context. If `codegraph` is unavailable, follow `/comet-scan`'s install-confirmation rule; if the user declines installation, you may continue requirement clarification but must not claim code-grounded exploration.
+First generate phase-specific CodeGraph context. Ensure CodeGraph is installed before running this workflow—if unavailable, run `comet init` or install manually with `npm install -g codegraph@latest`. You may continue requirement clarification if CodeGraph is missing, but do not claim code-grounded exploration without CodeGraph output.
 
 ```bash
 COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"

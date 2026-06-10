@@ -2,6 +2,20 @@
 
 All notable changes to @rpamis/comet will be documented in this file.
 
+## What's Changed [0.3.7] - 2026-06-10
+
+### Fixed
+
+- **CodeGraph dependency documentation**: Removed inconsistent `AskUserQuestion` flow from `/comet-scan` skill documentation. The skill now correctly states that CodeGraph is installed via `comet init` and scripts will fail with clear error messages if CodeGraph is unavailable.
+- **CodeGraph init/index optimization**: Updated `/comet-scan` skill and `comet-codegraph-context.sh` script to reflect that latest CodeGraph's `codegraph init` includes automatic index building, removing redundant `codegraph index` invocation.
+- **Unified dependency handling**: Aligned CodeGraph, OpenSpec, and Superpowers dependency documentation across all skill files, ensuring consistent user guidance.
+
+### Changed
+
+- **Comet scan workflow**: Updated `/comet-scan` to clarify that `codegraph init` (not `codegraph index`) is the primary command, as it now automatically builds the index in the latest CodeGraph version.
+
+## What's Changed [0.3.6] - 2026-06-10
+
 ## What's Changed [0.3.6] - 2026-06-10
 
 ### Added

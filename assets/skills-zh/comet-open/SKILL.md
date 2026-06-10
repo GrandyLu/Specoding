@@ -17,7 +17,7 @@ description: "Comet 阶段 1：开启。用 /comet-open 调用。通过 OpenSpec
 
 ### 1. 探索想法
 
-先生成本阶段 CodeGraph 上下文。若 `codegraph` 不存在，按 `/comet-scan` 的安装确认规则处理；用户拒绝安装时，可继续需求澄清，但不得声称已基于代码事实完成探索。
+先生成本阶段 CodeGraph 上下文。运行此工作流前请确保 CodeGraph 已安装——如不可用，请运行 `comet init` 或手动执行 `npm install -g codegraph@latest` 安装。若 CodeGraph 缺失，可继续需求澄清，但不得声称已基于代码事实完成探索。
 
 ```bash
 COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"

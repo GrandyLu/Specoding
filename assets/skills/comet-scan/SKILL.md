@@ -28,24 +28,27 @@ fi
 
 ### 1. Build CodeGraph Context
 
-First check for the CodeGraph CLI:
+**Note**: CodeGraph is a required dependency. This scan depends on CodeGraph CLI output. If CodeGraph is not installed, the script will fail with an error message.
+
+To ensure CodeGraph is available, run `comet init` first, or manually install:
+
+```bash
+npm install -g codegraph@latest
+```
+
+Then verify installation:
 
 ```bash
 command -v codegraph
 ```
 
-If the command is unavailable, **must use the AskUserQuestion tool to pause and ask whether to install the CodeGraph CLI**. Do not install directly, and do not merely print a prompt before continuing.
-
-- If the user agrees: run `npm install -g codegraph@latest`, then run `command -v codegraph` again to verify
-- If the user declines: stop `/comet-scan` and explain that scan cannot continue because it depends on CodeGraph output
-
-After CodeGraph is available, run from the project root:
+When CodeGraph is available, run from the project root:
 
 ```bash
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" scan
 ```
 
-This script runs `codegraph index`, then writes CodeGraph `status`, `files`, `query`, `callers`, `callees`, `impact`, and related output to:
+This script runs `codegraph init` (which automatically builds the index in the latest CodeGraph version), then writes CodeGraph `status`, `files`, `query`, `callers`, `callees`, `impact`, and related output to:
 
 ```text
 $COMET_CODEGRAPH_CONTEXT_FILE
