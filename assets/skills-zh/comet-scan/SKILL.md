@@ -42,13 +42,13 @@ command -v codegraph
 CodeGraph 可用后，在项目根目录运行：
 
 ```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" .
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" scan
 ```
 
 该脚本会先执行 `codegraph index`，再把 CodeGraph 的 `status`、`files`、`query`、`callers`、`callees`、`impact` 等产物写入：
 
 ```text
-openspec/.comet/codegraph-context.md
+$COMET_CODEGRAPH_CONTEXT_FILE
 ```
 
 后续 OpenSpec explore 必须优先读取该文件。尤其要先查看 `Relationship Analysis` 小节，用 `callers` / `callees` / `impact` 结果判断调用归属；不要仅凭文件名或 `query` 搜索结果推断。若对象方法或动态调用没有被 CodeGraph 关系命令索引，继续查看 `Targeted Source Excerpts` 小节，该小节只截取 CodeGraph 指向的 `file:line` 附近源码。不要全量扫描仓库源码。
@@ -61,8 +61,8 @@ openspec/.comet/codegraph-context.md
 
 ```text
 Language: 使用触发本次工作流的用户请求语言输出。
-Goal: 基于 openspec/.comet/codegraph-context.md 梳理存量项目的能力、领域对象、关键流程和边界条件，生成或补充项目现有 spec 文档。不要创建新的 change，除非用户明确要求。
-Inputs: openspec/.comet/codegraph-context.md。必须优先使用其中的 Relationship Analysis（callers/callees/impact）判断调用关系；关系命令缺失、返回 not found，或行为仍不明确时，使用 Targeted Source Excerpts 核验具体代码；不得全量扫描仓库。
+Goal: 基于 $COMET_CODEGRAPH_CONTEXT_FILE 梳理存量项目的能力、领域对象、关键流程和边界条件，生成或补充项目现有 spec 文档。不要创建新的 change，除非用户明确要求。
+Inputs: $COMET_CODEGRAPH_CONTEXT_FILE。必须优先使用其中的 Relationship Analysis（callers/callees/impact）判断调用关系；关系命令缺失、返回 not found，或行为仍不明确时，使用 Targeted Source Excerpts 和 Callback Relationship Hints 核验具体代码；不得全量扫描仓库。
 ```
 
 探索时优先从 CodeGraph 产物中的结构入口、符号搜索结果、调用关系和定向源码摘录展开。生成 spec 时应区分已确认行为与推断行为；推断内容必须标注为待确认。如果 `callers/callees` 与源码细节不一致，以定向源码摘录或按需读取的源码事实为准，并在 spec 中写清楚证据来源。
@@ -70,7 +70,7 @@ Inputs: openspec/.comet/codegraph-context.md。必须优先使用其中的 Relat
 ## 退出条件
 
 - `codegraph index` 已成功运行
-- `openspec/.comet/codegraph-context.md` 已生成并被用作主要输入
+- `$COMET_CODEGRAPH_CONTEXT_FILE` 已生成并被用作主要输入
 - 已调用 `openspec-explore`
 - 已产出或更新存量项目 spec 草稿
 - 对未确认推断、缺失测试或代码结构盲区给出清单

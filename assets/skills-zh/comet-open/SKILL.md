@@ -17,12 +17,26 @@ description: "Comet 阶段 1：开启。用 /comet-open 调用。通过 OpenSpec
 
 ### 1. 探索想法
 
+先生成本阶段 CodeGraph 上下文。若 `codegraph` 不存在，按 `/comet-scan` 的安装确认规则处理；用户拒绝安装时，可继续需求澄清，但不得声称已基于代码事实完成探索。
+
+```bash
+COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"
+if [ -z "$COMET_ENV" ]; then
+  echo "ERROR: comet-env.sh not found. Ensure the comet skill is installed." >&2
+  return 1
+fi
+. "$COMET_ENV"
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" open "<change-name-or-user-request>"
+```
+
 **立即执行：** 使用 Skill 工具加载 `openspec-explore` 技能。禁止跳过此步骤。
 
 技能加载时，ARGUMENTS 必须包含：
 
 ```
 Language: 使用触发本次工作流的用户请求语言输出。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
+Use CodeGraph Context as primary codebase evidence. Do not scan the whole repository. Read source files only when CodeGraph points to them or behavior remains ambiguous.
 ```
 
 技能加载后，按其指引自由探索问题空间，所有问题和总结均使用该语言。
@@ -37,6 +51,7 @@ Language: 使用触发本次工作流的用户请求语言输出。
 
 ```
 Language: 使用触发本次工作流的用户请求语言输出 proposal.md、design.md、tasks.md 和必要的 delta spec。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。生成 proposal/design/tasks 时优先依据 Relationship Analysis、Impact 和 Targeted Source Excerpts，不要全量扫描源码。
 ```
 
 确认以下产物已创建：

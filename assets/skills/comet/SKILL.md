@@ -29,6 +29,16 @@ Use the language of the user request that triggered this workflow as the default
 - If the user explicitly specifies an output language, follow that explicit request.
 - Every OpenSpec or Superpowers skill invocation must pass this output-language constraint in ARGUMENTS instead of allowing the external skill to fall back to English.
 
+### CodeGraph Code Evidence Rule
+
+Every step that needs to understand, locate, design, plan, implement, or verify local code must first generate and read phase-specific CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" <mode> "<change-name-or-user-request>"
+```
+
+`$COMET_CODEGRAPH_CONTEXT_FILE` is the primary code evidence passed from Comet to OpenSpec / Superpowers. ARGUMENTS must explicitly include this file and require downstream skills to prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts. Do not scan the full source tree. Only read a small number of CodeGraph-directed files when CodeGraph evidence is insufficient to explain behavior.
+
 ### Automatic Phase Detection
 
 **Step 0: Active Change Discovery and Intent Detection**

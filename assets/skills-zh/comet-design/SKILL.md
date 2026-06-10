@@ -71,16 +71,23 @@ handoff_hash: <sha256>
 
 ### 1b. 执行 Brainstorming（带上下文）
 
+先生成设计阶段 CodeGraph 上下文，用于约束 Superpowers 设计对现有代码的理解：
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
+```
+
 **立即执行：** 使用 Skill 工具加载 Superpowers `brainstorming` 技能，ARGUMENTS 包含：
 
 ```
 Change: <change-name>
 OpenSpec Context Pack: openspec/changes/<name>/.comet/handoff/design-context.md
 Machine handoff: openspec/changes/<name>/.comet/handoff/design-context.json
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
 Language: 使用触发本次工作流的用户请求语言输出；Design Doc、delta spec、提问和确认摘要均使用该语言。
 
 OpenSpec 产物是上游事实源，不要重新定义需求，不要重写 proposal/spec。
-你的任务是基于交接包做深度技术设计：实现方案、技术风险、测试策略、边界条件。
+你的任务是基于交接包和 CodeGraph Context 做深度技术设计：实现方案、技术风险、测试策略、边界条件。CodeGraph Context 是主要代码证据；不得全量扫描源码，只能在 Relationship Analysis / Impact / Targeted Source Excerpts 仍不足时按需读取少量相关文件。
 如发现 OpenSpec delta spec 缺少验收场景，只能提出 Spec Patch，并回写 OpenSpec delta spec；不要在 Design Doc 中创建第二份需求 spec。
 
 Design Doc frontmatter 必须最小化，只包含：

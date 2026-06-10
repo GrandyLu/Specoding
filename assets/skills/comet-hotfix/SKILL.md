@@ -75,6 +75,12 @@ Use hotfix defaults: `build_mode: direct`. Skip Superpowers `brainstorming` and 
 
 Before continuing or starting changes, handle uncommitted changes through `comet/reference/dirty-worktree.md`. If attribution shows the fix scope exceeds hotfix, handle it through this file's "Upgrade Conditions".
 
+Before editing, generate hotfix CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" hotfix "<change-name>"
+```
+
 **Immediately execute:** Execute tasks one by one according to tasks.md:
 
 1. Read `openspec/changes/<name>/tasks.md`, get incomplete task list
@@ -95,7 +101,7 @@ Before continuing or starting changes, handle uncommitted changes through `comet
 **Execute before running build guard**, ensuring the fix actually eliminates the root cause:
 
 1. Read bug description and root cause in proposal.md
-2. Search and verify problem code no longer exists
+2. Read `$COMET_CODEGRAPH_CONTEXT_FILE`; prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts to locate and verify root-cause-related code
 3. If root cause not eliminated, return to Step 2 to continue fix (still in build phase, no state transition needed)
 
 **Upgrade conditions**:

@@ -17,12 +17,26 @@ Every prompt and artifact request passed to OpenSpec must include the output-lan
 
 ### 1. Explore Ideas
 
+First generate phase-specific CodeGraph context. If `codegraph` is unavailable, follow `/comet-scan`'s install-confirmation rule; if the user declines installation, you may continue requirement clarification but must not claim code-grounded exploration.
+
+```bash
+COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"
+if [ -z "$COMET_ENV" ]; then
+  echo "ERROR: comet-env.sh not found. Ensure the comet skill is installed." >&2
+  return 1
+fi
+. "$COMET_ENV"
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" open "<change-name-or-user-request>"
+```
+
 **Immediately execute:** Use the Skill tool to load the `openspec-explore` skill. Skipping this step is prohibited.
 
 When loading the skill, ARGUMENTS must include:
 
 ```
 Language: Use the language of the user request that triggered this workflow.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
+Use CodeGraph Context as primary codebase evidence. Do not scan the whole repository. Read source files only when CodeGraph points to them or behavior remains ambiguous.
 ```
 
 After the skill loads, freely explore the problem space following its guidance. All questions and summaries must use that language.
@@ -37,6 +51,7 @@ When loading the skill, ARGUMENTS must include:
 
 ```
 Language: Use the language of the user request that triggered this workflow for proposal.md, design.md, tasks.md, and any required delta specs.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Prefer Relationship Analysis, Impact, and Targeted Source Excerpts when creating proposal/design/tasks; do not scan the whole source tree.
 ```
 
 Confirm the following artifacts have been created:

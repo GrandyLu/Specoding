@@ -42,13 +42,13 @@ If the command is unavailable, **must use the AskUserQuestion tool to pause and 
 After CodeGraph is available, run from the project root:
 
 ```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" .
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" scan
 ```
 
 This script runs `codegraph index`, then writes CodeGraph `status`, `files`, `query`, `callers`, `callees`, `impact`, and related output to:
 
 ```text
-openspec/.comet/codegraph-context.md
+$COMET_CODEGRAPH_CONTEXT_FILE
 ```
 
 OpenSpec explore must use that file as the primary input. In particular, inspect the `Relationship Analysis` section first and use `callers` / `callees` / `impact` output to attribute behavior to the correct caller. Do not infer from file names or `query` output alone. If object methods or dynamic calls are not indexed by CodeGraph relationship commands, continue to the `Targeted Source Excerpts` section; it includes only source snippets around CodeGraph-reported `file:line` references. Do not scan the whole repository source.
@@ -61,8 +61,8 @@ When loading the skill, ARGUMENTS must include:
 
 ```text
 Language: Use the language of the user request that triggered this workflow.
-Goal: Based on openspec/.comet/codegraph-context.md, identify existing capabilities, domain objects, key flows, and edge cases, then create or update specs for the existing project. Do not create a new change unless the user explicitly asks.
-Inputs: openspec/.comet/codegraph-context.md. First use its Relationship Analysis (callers/callees/impact) to determine call relationships. When relationship commands are missing, return not found, or behavior remains ambiguous, use Targeted Source Excerpts to verify concrete code; do not scan the whole repository.
+Goal: Based on , identify existing capabilities, domain objects, key flows, and edge cases, then create or update specs for the existing project. Do not create a new change unless the user explicitly asks.
+Inputs: $COMET_CODEGRAPH_CONTEXT_FILE. First use its Relationship Analysis (callers/callees/impact) to determine call relationships. When relationship commands are missing, return not found, or behavior remains ambiguous, use Targeted Source Excerpts and Callback Relationship Hints to verify concrete code; do not scan the whole repository.
 ```
 
 During exploration, start from the structural entry points, symbol search results, call relationships, and targeted source excerpts reported by CodeGraph. Separate confirmed behavior from inferred behavior; mark inferred content as requiring confirmation. If `callers/callees` and source-level details disagree, trust the targeted source excerpt or targeted source read and document the evidence source in the spec.
@@ -70,7 +70,7 @@ During exploration, start from the structural entry points, symbol search result
 ## Exit Conditions
 
 - `codegraph index` has run successfully
-- `openspec/.comet/codegraph-context.md` has been generated and used as the primary input
+- `$COMET_CODEGRAPH_CONTEXT_FILE` has been generated and used as the primary input
 - `openspec-explore` has been invoked
 - Existing-project spec draft has been created or updated
 - Unknowns, unverified inferences, missing tests, or code-structure blind spots are listed

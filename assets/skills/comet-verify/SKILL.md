@@ -36,6 +36,12 @@ Verification reports and branch-handling notes must use the language of the user
 
 ### 1. Scale Assessment
 
+First generate verification-phase CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" verify "<change-name>"
+```
+
 Execute scale assessment:
 
 ```bash
@@ -92,11 +98,12 @@ When scale assessment result is "small", skip `openspec-verify-change` and direc
 
 1. All tasks.md tasks completed `[x]`
 2. Changed files match tasks.md descriptions (`git diff --stat` / `git diff --cached --stat` / `git diff --stat <base-ref>...HEAD` compared against tasks content)
-3. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
-4. Related tests pass
-5. No obvious security issues (no hardcoded keys, no new unsafe operations)
+3. Use Impact / Affected Tests / Targeted Source Excerpts in `$COMET_CODEGRAPH_CONTEXT_FILE` to verify the affected scope without scanning the full source tree
+4. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
+5. Related tests pass
+6. No obvious security issues (no hardcoded keys, no new unsafe operations)
 
-**Pass criteria**: All 5 items OK, no CRITICAL issues.
+**Pass criteria**: All 6 items OK, no CRITICAL issues.
 
 **When not passing**: Report failures, enter Step 1b verification failure decision blocking point. Only after user confirms fix, execute the following command to record failure and roll back to build phase, then invoke `/comet-build` to fix:
 
@@ -105,7 +112,7 @@ When scale assessment result is "small", skip `openspec-verify-change` and direc
 "$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail
 ```
 
-**Report format**: Brief table listing 5 check results + PASS/FAIL.
+**Report format**: Brief table listing 6 check results + PASS/FAIL.
 
 **Skipped items** (not checked in lightweight verification):
 - spec scenario coverage
@@ -118,6 +125,12 @@ When scale assessment result is "small", skip `openspec-verify-change` and direc
 When scale assessment result is "large":
 
 **Immediately execute:** Use the Skill tool to load the `openspec-verify-change` skill. Skipping this step is prohibited.
+
+When invoking `openspec-verify-change`, ARGUMENTS must include:
+
+```text
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts as implementation evidence; do not search the full codebase. Only read a small number of CodeGraph-directed files when CodeGraph evidence is insufficient.
+```
 
 After the skill loads, follow its guidance to verify. Check items:
 1. All tasks.md tasks completed (`[x]`)

@@ -17,6 +17,18 @@ git ls-files --others --exclude-standard
 
 必要时再查看 `git diff` / `git diff --cached` / 新建文件内容。
 
+随后生成 dirty worktree 的 CodeGraph 上下文，用于归因和影响面判断：
+
+```bash
+COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"
+if [ -n "$COMET_ENV" ]; then
+  . "$COMET_ENV"
+  "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" dirty "<change-name-or-dirty-files>"
+fi
+```
+
+归因时优先读取 `$COMET_CODEGRAPH_CONTEXT_FILE` 中的 Git Change Context、Relationship Analysis、Impact、Affected Tests、Targeted Source Excerpts 和 Callback Relationship Hints。不要全量扫描源码；只有当 CodeGraph 证据不足以判断归属时，才按 CodeGraph 指向读取少量相关文件。
+
 ## 2. 核心规则
 
 - 用户可能不会说明自己改了哪里。只要存在 dirty worktree（包括 Git 状态里显示为 `??` 的新建文件），就先假设改动可能来自用户或混合来源
@@ -28,7 +40,7 @@ git ls-files --others --exclude-standard
 
 1. **属于当前 change**：文件和内容能对应当前 change 的目标、tasks.md、plan 或 delta spec。将其纳入当前任务继续，不重复改同一处
 2. **不属于当前 change**：文件或内容与当前目标无关。暂停并询问用户：并入当前 change、拆成新 change、保留不处理，或明确授权丢弃
-3. **来源不确定**：无法从 diff 和文档判断归属。暂停并向用户汇报文件列表和判断依据，不继续推进阶段
+3. **来源不确定**：无法从 diff、文档和 CodeGraph 上下文判断归属。暂停并向用户汇报文件列表和判断依据，不继续推进阶段
 
 ## 4. 常见处理模式
 

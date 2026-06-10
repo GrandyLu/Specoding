@@ -71,16 +71,23 @@ Handoff package sources come from OpenSpec open phase artifacts:
 
 ### 1b. Execute Brainstorming (with Context)
 
+First generate design-phase CodeGraph context to constrain Superpowers' understanding of the existing code:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
+```
+
 **Immediately execute:** Use the Skill tool to load the Superpowers `brainstorming` skill, ARGUMENTS containing:
 
 ```
 Change: <change-name>
 OpenSpec Context Pack: openspec/changes/<name>/.comet/handoff/design-context.md
 Machine handoff: openspec/changes/<name>/.comet/handoff/design-context.json
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
 Language: Use the language of the user request that triggered this workflow for the Design Doc, delta spec, questions, and confirmation summary.
 
 OpenSpec artifacts are the upstream source of truth. Do not redefine requirements, do not rewrite proposal/spec.
-Your task is to perform deep technical design based on the handoff package: implementation approach, technical risks, testing strategy, boundary conditions.
+Your task is to perform deep technical design based on the handoff package and CodeGraph Context: implementation approach, technical risks, testing strategy, boundary conditions. CodeGraph Context is the primary code evidence; do not scan the whole source tree. Read a small number of relevant files only when Relationship Analysis / Impact / Targeted Source Excerpts are insufficient.
 If you find OpenSpec delta spec missing acceptance scenarios, you may only propose Spec Patches and write them back to OpenSpec delta spec; do not create a second requirements spec in the Design Doc.
 
 Design Doc frontmatter must be minimal, containing only:

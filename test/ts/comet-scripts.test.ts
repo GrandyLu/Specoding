@@ -320,7 +320,7 @@ describeShell('comet shell scripts', () => {
       [
         '#!/bin/bash',
         `. "${toBashPath(envScript)}"`,
-        'printf "%s\\n%s\\n%s\\n%s\\n%s\\n%s\\n" "$COMET_STATE" "$COMET_GUARD" "$COMET_HANDOFF" "$COMET_ARCHIVE" "$COMET_CODEGRAPH_CONTEXT" "$COMET_BASH"',
+        'printf "%s\\n%s\\n%s\\n%s\\n%s\\n%s\\n%s\\n%s\\n" "$COMET_STATE" "$COMET_GUARD" "$COMET_HANDOFF" "$COMET_ARCHIVE" "$COMET_CODEGRAPH_CONTEXT" "$COMET_ARTIFACTS_DIR" "$COMET_CODEGRAPH_CONTEXT_FILE" "$COMET_BASH"',
         '',
       ].join('\n'),
     );
@@ -333,6 +333,8 @@ describeShell('comet shell scripts', () => {
     expect(result.stdout).toContain('comet-handoff.sh');
     expect(result.stdout).toContain('comet-archive.sh');
     expect(result.stdout).toContain('comet-codegraph-context.sh');
+    expect(result.stdout).toContain('openspec/.comet');
+    expect(result.stdout).toContain('openspec/.comet/codegraph-context.md');
     expect(result.stdout).toContain('bash');
   }, 20_000);
 
@@ -411,7 +413,19 @@ describeShell('comet shell scripts', () => {
       ].join('\n'),
     );
     await fs.chmod(fakeCodegraph, 0o755);
-    await writeFile(path.join(tmpDir, 'src', 'app.js'), 'function demo() {\n  return true;\n}\n');
+    await writeFile(
+      path.join(tmpDir, 'src', 'app.js'),
+      [
+        'function isOpenTask(task) {',
+        "  return task.status === 'todo';",
+        '}',
+        '',
+        'function summarizeProject(tasks) {',
+        '  return tasks.filter(isOpenTask).length;',
+        '}',
+        '',
+      ].join('\n'),
+    );
 
     const result = runBash(tmpDir, contextScript, ['.'], {
       PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
@@ -422,7 +436,8 @@ describeShell('comet shell scripts', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(context).toContain('# CodeGraph Scan Context');
+    expect(context).toContain('# Comet CodeGraph Context');
+    expect(context).toContain('- Mode: scan');
     expect(context).toContain('## Index Output');
     expect(context).toContain('indexed');
     expect(context).toContain('## Index Status');
@@ -438,6 +453,8 @@ describeShell('comet shell scripts', () => {
     expect(context).toContain('Callers of "demo"');
     expect(context).toContain('## Impact: demo');
     expect(context).toContain('Impact of changing "demo"');
+    expect(context).toContain('## Callback Relationship Hints');
+    expect(context).toContain('summarizeProject -> isOpenTask via .filter() callback');
     expect(context).toContain('## Targeted Source Excerpts');
     expect(context).toContain('### src/app.js:1');
   }, 20_000);

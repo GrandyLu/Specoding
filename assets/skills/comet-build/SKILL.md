@@ -32,12 +32,19 @@ Proceed to Step 1 after verification passes. The script outputs specific failure
 
 ### 1. Create Plan
 
+First generate plan-phase CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" plan "<change-name>"
+```
+
 **Immediately execute:** Use the Skill tool to load the Superpowers `writing-plans` skill. Skipping this step is prohibited.
 
 When loading the skill, ARGUMENTS must include:
 
 ```
 Language: Use the language of the user request that triggered this workflow.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. When planning, prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts to locate implementation points; do not scan the whole source tree.
 ```
 
 After the skill loads, follow its guidance to create a plan. Plan files and execution feedback must use the language of the user request that triggered this workflow. Plan requirements:
@@ -158,7 +165,18 @@ After creating isolation, confirm plan file is accessible (naturally accessible 
 
 If the selected Superpowers skill is unavailable, stop the process and prompt to install or enable the corresponding skill. Do not substitute this step with normal conversation.
 
-When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint.
+Before loading `subagent-driven-development` or `executing-plans`, refresh build-phase CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
+```
+
+When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint and CodeGraph constraint:
+
+```text
+Language: Use the language of the user request that triggered this workflow.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. First use CodeGraph to locate files to edit, callers, callees, and affected tests; read or modify only files pointed to by CodeGraph or explicitly required by the plan. Do not scan the whole repository.
+```
 
 After the skill loads, follow its guidance to execute:
 - Execute tasks according to plan
@@ -188,6 +206,7 @@ When loading `brainstorming` for a medium-scale Spec incremental update, ARGUMEN
 
 ```text
 Language: Use the language of the user request that triggered this workflow.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Use CodeGraph impact/callers/callees to determine the expanded impact area; do not scan the whole source tree.
 ```
 
 **50% Threshold Determination**: Using initial task count in tasks.md as baseline, if new tasks exceed half of that total, it's considered outside original plan scope, **must use the AskUserQuestion tool to pause and wait for the user to decide whether to split into a new change**. Must not just output a text prompt and then continue executing.

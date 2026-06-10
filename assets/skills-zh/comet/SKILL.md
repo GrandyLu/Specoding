@@ -29,6 +29,16 @@ agent 做决策只需读本节，参考附录按需查阅。
 - 用户显式指定输出语言时，以用户显式要求为准。
 - 每次调用 OpenSpec 或 Superpowers skill 时，都必须在 ARGUMENTS 中传递输出语言约束，不得让外部 skill 默认回到英文。
 
+### CodeGraph 代码证据规则
+
+所有需要理解、定位、设计、规划、实现或验证本地代码的步骤，都必须先生成并读取阶段性的 CodeGraph 上下文：
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" <mode> "<change-name-or-user-request>"
+```
+
+`$COMET_CODEGRAPH_CONTEXT_FILE` 是 Comet 调用 OpenSpec / Superpowers 时的主要代码证据。ARGUMENTS 必须显式传递该文件，并要求下游优先使用 Relationship Analysis、Impact、Affected Tests 和 Targeted Source Excerpts。不得全量扫描源码；只有 CodeGraph 证据不足以解释行为时，才按 CodeGraph 指向读取少量相关文件。
+
 ### 阶段自动检测
 
 **Step 0: 活跃 Change 发现与意图判定**

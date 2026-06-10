@@ -32,12 +32,19 @@ fi
 
 ### 1. 制定计划
 
+先生成计划阶段 CodeGraph 上下文：
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" plan "<change-name>"
+```
+
 **立即执行：** 使用 Skill 工具加载 Superpowers `writing-plans` 技能。禁止跳过此步骤。
 
 技能加载时，ARGUMENTS 必须包含：
 
 ```
 Language: 使用触发本次工作流的用户请求语言输出。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。制定计划时优先使用 Relationship Analysis、Impact、Affected Tests 和 Targeted Source Excerpts 定位实现点；不得全量扫描源码。
 ```
 
 技能加载后，按其指引制定计划。计划文件和执行反馈必须使用触发本次工作流的用户请求语言。计划要求：
@@ -158,7 +165,18 @@ git rev-parse HEAD
 
 如所选 Superpowers 技能不可用，停止流程并提示安装或启用对应技能，不要用普通对话替代该步骤。
 
-加载 `subagent-driven-development` 或 `executing-plans` 时，ARGUMENTS 必须包含同一 Language 约束。
+加载 `subagent-driven-development` 或 `executing-plans` 前，刷新构建阶段 CodeGraph 上下文：
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
+```
+
+加载 `subagent-driven-development` 或 `executing-plans` 时，ARGUMENTS 必须包含同一 Language 约束和 CodeGraph 约束：
+
+```text
+Language: 使用触发本次工作流的用户请求语言输出。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。先用 CodeGraph 定位要修改的文件、调用者、被调用者和影响测试；只读取/修改 CodeGraph 指向或计划明确要求的目标文件，不得全量扫描仓库。
+```
 
 技能加载后，按其指引执行：
 - 按计划执行任务
@@ -188,6 +206,7 @@ git rev-parse HEAD
 
 ```text
 Language: 使用触发本次工作流的用户请求语言输出。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。根据 CodeGraph impact/callers/callees 判断新增影响面，不得全量扫描源码。
 ```
 
 **50% 阈值判定**：以 tasks.md 初始任务总数为基准，若新增任务数超过该总数的一半，视为超出原计划范围，**必须使用 AskUserQuestion 工具暂停并等待用户决定是否拆分为新 change**。

@@ -36,6 +36,12 @@ fi
 
 ### 1. 改动规模评估
 
+先生成验证阶段 CodeGraph 上下文：
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" verify "<change-name>"
+```
+
 执行规模评估：
 
 ```bash
@@ -92,11 +98,12 @@ git diff --stat "$BASE_REF"...HEAD
 
 1. tasks.md 全部任务已完成 `[x]`
 2. 改动文件与 tasks.md 描述一致（`git diff --stat` / `git diff --cached --stat` / `git diff --stat <base-ref>...HEAD` 对照 tasks 内容）
-3. 编译通过（执行项目对应的构建命令，如 `npm run build`、`mvn compile`、`cargo build` 等）
-4. 相关测试通过
-5. 无明显安全问题（无硬编码密钥、无新增 unsafe 操作）
+3. 使用 `$COMET_CODEGRAPH_CONTEXT_FILE` 的 Impact / Affected Tests / Targeted Source Excerpts 复核改动影响面，不全量扫描源码
+4. 编译通过（执行项目对应的构建命令，如 `npm run build`、`mvn compile`、`cargo build` 等）
+5. 相关测试通过
+6. 无明显安全问题（无硬编码密钥、无新增 unsafe 操作）
 
-**通过标准**：5 项全部 OK，无 CRITICAL 问题。
+**通过标准**：6 项全部 OK，无 CRITICAL 问题。
 
 **不通过时**：报告失败项，进入 Step 1b 的验证失败决策阻塞点。用户选择修复后，才执行以下命令记录失败并回退到 build 阶段，然后调用 `/comet-build` 修复：
 
@@ -105,7 +112,7 @@ git diff --stat "$BASE_REF"...HEAD
 "$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail
 ```
 
-**报告格式**：简表列出 5 项检查结果 + PASS/FAIL。
+**报告格式**：简表列出 6 项检查结果 + PASS/FAIL。
 
 **跳过项**（不在轻量验证中检查）：
 - spec scenario 覆盖率
@@ -118,6 +125,12 @@ git diff --stat "$BASE_REF"...HEAD
 当规模评估结果为"大"时：
 
 **立即执行：** 使用 Skill 工具加载 `openspec-verify-change` 技能。禁止跳过此步骤。
+
+调用 `openspec-verify-change` 时，ARGUMENTS 必须包含：
+
+```text
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。验证实现证据时优先使用 Relationship Analysis、Impact、Affected Tests 和 Targeted Source Excerpts；不得全量搜索 codebase。只有当 CodeGraph 证据不足时，才按 CodeGraph 指向读取少量相关文件。
+```
 
 技能加载后，按其指引验证。检查项：
 1. tasks.md 全部任务已完成（`[x]`）
