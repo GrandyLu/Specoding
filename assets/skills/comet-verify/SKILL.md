@@ -98,12 +98,13 @@ When scale assessment result is "small", skip `openspec-verify-change` and direc
 
 1. All tasks.md tasks completed `[x]`
 2. Changed files match tasks.md descriptions (`git diff --stat` / `git diff --cached --stat` / `git diff --stat <base-ref>...HEAD` compared against tasks content)
-3. Use Impact / Affected Tests / Targeted Source Excerpts in `$COMET_CODEGRAPH_CONTEXT_FILE` to verify the affected scope without scanning the full source tree
-4. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
-5. Related tests pass
-6. No obvious security issues (no hardcoded keys, no new unsafe operations)
+3. Test/verification cases related to this change in `openspec/changes/<name>/test-cases.md` have results or explicit uncovered rationale
+4. Use Impact / Affected Tests / Targeted Source Excerpts in `$COMET_CODEGRAPH_CONTEXT_FILE` to verify the affected scope without scanning the full source tree
+5. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
+6. Related test or verification evidence passes; this may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other evidence appropriate to this change
+7. No obvious security issues (no hardcoded keys, no new unsafe operations)
 
-**Pass criteria**: All 6 items OK, no CRITICAL issues.
+**Pass criteria**: All 7 items OK, no CRITICAL issues.
 
 **When not passing**: Report failures, enter Step 1b verification failure decision blocking point. Only after user confirms fix, execute the following command to record failure and roll back to build phase, then invoke `/comet-build` to fix:
 
@@ -112,7 +113,7 @@ When scale assessment result is "small", skip `openspec-verify-change` and direc
 "$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail
 ```
 
-**Report format**: Brief table listing 6 check results + PASS/FAIL.
+**Report format**: Brief table listing 7 check results + PASS/FAIL, plus evidence summary for each scenario in `test-cases.md`.
 
 **Skipped items** (not checked in lightweight verification):
 - spec scenario coverage
@@ -134,12 +135,13 @@ CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Prefer Relationship Analysis, 
 
 After the skill loads, follow its guidance to verify. Check items:
 1. All tasks.md tasks completed (`[x]`)
-2. Implementation matches `openspec/changes/<name>/design.md` high-level design decisions
-3. Implementation matches Design Doc (technical design documents under `docs/superpowers/specs/`)
-4. All capability spec scenarios pass
-5. proposal.md goals are satisfied
-6. No contradictions between delta spec and design doc (if Build phase had incremental spec modifications, check if design doc has corresponding records)
-7. Associated design documents under `docs/superpowers/specs/` are locatable (file exists and is related to current change)
+2. Every test/verification case in `openspec/changes/<name>/test-cases.md` has a result, evidence, or explicit uncovered rationale
+3. Implementation matches `openspec/changes/<name>/design.md` high-level design decisions
+4. Implementation matches Design Doc (technical design documents under `docs/superpowers/specs/`)
+5. All capability spec scenarios pass
+6. proposal.md goals are satisfied
+7. No contradictions between delta spec and design doc (if Build phase had incremental spec modifications, check if design doc has corresponding records)
+8. Associated design documents under `docs/superpowers/specs/` are locatable (file exists and is related to current change)
 
 When verification does not pass: report missing items, enter Step 1b verification failure decision blocking point. Only after user confirms fix, execute the following command to record failure and roll back to build phase, then invoke `/comet-build` to supplement:
 
@@ -175,6 +177,8 @@ This is a user decision point. **Must use the AskUserQuestion tool to pause and 
 ### 4. Record Verification Evidence
 
 Verification report must be saved to disk and recorded in `.comet.yaml`; after branch handling completes, state fields must also be written. Do not manually set `verify_result: pass`; use guard for auto-transition.
+
+The verification report must reference `openspec/changes/<name>/test-cases.md` and record actual evidence for each verification case: command output, report path, screenshot path, manual verification note, visual-check conclusion, or other traceable material. Do not mark frontend verification as missing merely because it has no automated unit-test code; if the evidence is traceable to the pass criteria, it can count as verification evidence for this change.
 
 ```bash
 mkdir -p docs/superpowers/reports

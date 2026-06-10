@@ -116,8 +116,85 @@ describeShell('comet shell scripts', () => {
     expect(result.status).toBe(0);
     expect(yaml).toContain('workflow: full');
     expect(yaml).toContain('phase: open');
+    expect(yaml).toContain('test_cases: openspec/changes/new-full-change/test-cases.md');
     expect(yaml).toContain('verification_report: null');
     expect(yaml).toContain('branch_status: pending');
+
+    const testCases = await fs.readFile(
+      path.join(tmpDir, 'openspec', 'changes', 'new-full-change', 'test-cases.md'),
+      'utf-8',
+    );
+    expect(testCases).toContain('# Test Cases');
+    expect(testCases).toContain('| Scenario | Related task | Verification method | Pass criteria | Evidence |');
+  }, 20_000);
+
+  it('allows setting and reading the per-change test cases document path', async () => {
+    await createChange(
+      tmpDir,
+      'test-cases-set',
+      [
+        'workflow: full',
+        'phase: open',
+        'build_mode: null',
+        'build_pause: null',
+        'isolation: null',
+        'verify_mode: null',
+        'auto_transition: true',
+        'test_cases: openspec/changes/test-cases-set/test-cases.md',
+        'design_doc: null',
+        'plan: null',
+        'verify_result: pending',
+        'verified_at: null',
+        'archived: false',
+        '',
+      ].join('\n'),
+    );
+
+    const set = runBash(tmpDir, stateScript, [
+      'set',
+      'test-cases-set',
+      'test_cases',
+      'openspec/changes/test-cases-set/verification-matrix.md',
+    ]);
+    const get = runBash(tmpDir, stateScript, ['get', 'test-cases-set', 'test_cases']);
+
+    expect(set.status).toBe(0);
+    expect(get.status).toBe(0);
+    expect(get.stdout.trim()).toBe('openspec/changes/test-cases-set/verification-matrix.md');
+  }, 20_000);
+
+  it('requires a non-empty test cases document when test_cases is set', async () => {
+    const validateScript = path.join(tmpDir, 'scripts', 'comet-yaml-validate.sh');
+    await createChange(
+      tmpDir,
+      'missing-test-cases',
+      [
+        'workflow: full',
+        'phase: build',
+        'build_mode: executing-plans',
+        'build_pause: null',
+        'isolation: branch',
+        'verify_mode: null',
+        'auto_transition: true',
+        'test_cases: openspec/changes/missing-test-cases/test-cases.md',
+        'design_doc: null',
+        'plan: null',
+        'verify_result: pending',
+        'verified_at: null',
+        'archived: false',
+        '',
+      ].join('\n'),
+    );
+
+    const validate = runBash(tmpDir, validateScript, ['missing-test-cases']);
+    const guard = runBash(tmpDir, guardScript, ['missing-test-cases', 'build']);
+
+    expect(validate.status).not.toBe(0);
+    expect(validate.stderr).toContain(
+      "test_cases='openspec/changes/missing-test-cases/test-cases.md' does not exist on disk",
+    );
+    expect(guard.status).not.toBe(0);
+    expect(guard.stderr).toContain('FATAL: .comet.yaml schema validation failed');
   }, 20_000);
 
   it('initializes build_pause as null for new changes', async () => {

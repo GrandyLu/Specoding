@@ -213,6 +213,7 @@ cmd_init() {
   # Write .comet.yaml
   # Record current HEAD as base_ref for scale assessment fallback
   local base_ref="null"
+  local test_cases_path="openspec/changes/$change_name/test-cases.md"
   if git rev-parse --verify HEAD >/dev/null 2>&1; then
     base_ref=$(git rev-parse HEAD 2>/dev/null || echo "null")
   fi
@@ -226,6 +227,7 @@ isolation: $isolation
 verify_mode: $verify_mode
 auto_transition: $auto_transition
 base_ref: $base_ref
+test_cases: $test_cases_path
 design_doc: null
 plan: null
 verify_result: pending
@@ -235,6 +237,18 @@ created_at: $(date +%Y-%m-%d)
 verified_at: null
 archived: false
 EOF
+
+  if [ ! -f "$change_dir/test-cases.md" ]; then
+    cat > "$change_dir/test-cases.md" <<EOF
+# Test Cases
+
+Use this per-change matrix to define verification before implementation. Cases may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other evidence appropriate to this change.
+
+| Scenario | Related task | Verification method | Pass criteria | Evidence |
+| --- | --- | --- | --- | --- |
+| _Fill before build_ | _tasks.md item_ | _unit / integration / e2e / visual / manual / build / lint_ | _Observable expected result_ | _Command, report path, screenshot, or notes_ |
+EOF
+  fi
 
   green "Initialized: $yaml_file (workflow=$workflow)"
 }
@@ -285,13 +299,13 @@ cmd_set() {
       yellow "WARNING: Setting 'phase' directly bypasses state machine constraints." >&2
       yellow "  Consider using: comet-state.sh transition <change-name> <event>" >&2
       ;;
-    workflow|build_mode|build_pause|isolation|verify_mode|auto_transition|verify_result|verification_report|branch_status|archived|design_doc|plan|verified_at|created_at|direct_override|build_command|verify_command|handoff_context|handoff_hash|base_ref)
+    workflow|build_mode|build_pause|isolation|verify_mode|auto_transition|verify_result|verification_report|branch_status|archived|design_doc|plan|test_cases|verified_at|created_at|direct_override|build_command|verify_command|handoff_context|handoff_hash|base_ref)
       # Valid field
       ;;
     *)
       red "ERROR: Unknown field: '$field'" >&2
       red "Valid fields:" >&2
-      red "  workflow, phase, design_doc, plan, build_mode, build_pause, isolation," >&2
+      red "  workflow, phase, design_doc, plan, test_cases, build_mode, build_pause, isolation," >&2
       red "  verify_mode, auto_transition, verify_result, verification_report, branch_status," >&2
       red "  verified_at, created_at, archived, base_ref, direct_override," >&2
       red "  build_command, verify_command, handoff_context, handoff_hash" >&2
@@ -334,7 +348,7 @@ cmd_set() {
     direct_override)
       validate_enum "$value" "true" "false"
       ;;
-    design_doc|plan|verification_report|verified_at|created_at|build_command|verify_command|handoff_context|handoff_hash)
+    design_doc|plan|test_cases|verification_report|verified_at|created_at|build_command|verify_command|handoff_context|handoff_hash)
       # No validation for path fields, date fields, or project command strings
       ;;
   esac
@@ -658,10 +672,11 @@ cmd_recover() {
   echo ""
 
   # Read all relevant fields
-  local design_doc plan verify_result verify_mode verification_report
+  local design_doc plan test_cases verify_result verify_mode verification_report
   local branch_status handoff_context handoff_hash isolation build_mode build_pause direct_override
   design_doc=$(cmd_get "$change_name" "design_doc")
   plan=$(cmd_get "$change_name" "plan")
+  test_cases=$(cmd_get "$change_name" "test_cases" 2>/dev/null || true)
   verify_result=$(cmd_get "$change_name" "verify_result")
   verify_mode=$(cmd_get "$change_name" "verify_mode")
   verification_report=$(cmd_get "$change_name" "verification_report")
@@ -723,6 +738,7 @@ cmd_recover() {
       echo ""
       echo "  Plan:"
       field_status "plan" "$plan" "$plan"
+      field_status "test_cases" "$test_cases" "$test_cases"
       echo ""
       # Count completed vs pending tasks
       local tasks_file="$change_dir/tasks.md"

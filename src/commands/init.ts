@@ -18,6 +18,7 @@ type InitOptions = {
   overwrite?: boolean;
   json?: boolean;
   scope?: InstallScope;
+  language?: string;
 };
 
 type InstallStatus = 'installed' | 'skipped' | 'failed';
@@ -38,8 +39,8 @@ type ComponentPlan = {
 };
 
 const LANGUAGES: LanguageConfig[] = [
-  { id: 'en', name: 'English', skillsDir: 'skills' },
   { id: 'zh', name: '中文', skillsDir: 'skills-zh' },
+  { id: 'en', name: 'English', skillsDir: 'skills' },
 ];
 
 const COMET_BANNER = [
@@ -66,6 +67,9 @@ async function selectScope(options: InitOptions): Promise<InstallScope> {
 }
 
 async function selectLanguage(options: InitOptions): Promise<LanguageConfig> {
+  if (options.language) {
+    return LANGUAGES.find((lang) => lang.id === options.language) ?? LANGUAGES[0];
+  }
   if (options.yes) return LANGUAGES[0];
 
   const langId = await select({

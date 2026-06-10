@@ -77,6 +77,8 @@ handoff_hash: <sha256>
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
 ```
 
+如果本 change 涉及 UI、设计稿、内部组件库或 design system，先使用 Skill 工具加载项目提供的 `comet-component-library` skill。该 skill 用于读取内部组件库的组件 API、使用约束、设计稿映射规则和示例；若该 skill 仍是占位内容或未提供有效组件信息，记录“组件库上下文未提供”，继续设计，但不得声称已按内部组件库约束完成组件选型。
+
 **立即执行：** 使用 Skill 工具加载 Superpowers `brainstorming` 技能，ARGUMENTS 包含：
 
 ```
@@ -88,6 +90,7 @@ Language: 使用触发本次工作流的用户请求语言输出；Design Doc、
 
 OpenSpec 产物是上游事实源，不要重新定义需求，不要重写 proposal/spec。
 你的任务是基于交接包和 CodeGraph Context 做深度技术设计：实现方案、技术风险、测试策略、边界条件。CodeGraph Context 是主要代码证据；不得全量扫描源码，只能在 Relationship Analysis / Impact / Targeted Source Excerpts 仍不足时按需读取少量相关文件。
+如本 change 涉及 UI 或设计稿，优先使用 `comet-component-library` skill 提供的内部组件库约束完成组件选型、页面结构和交互状态设计；不要在 Design Doc 中重复粘贴组件库全文。
 如发现 OpenSpec delta spec 缺少验收场景，只能提出 Spec Patch，并回写 OpenSpec delta spec；不要在 Design Doc 中创建第二份需求 spec。
 
 Design Doc frontmatter 必须最小化，只包含：
@@ -106,7 +109,7 @@ canonical_spec: openspec
 
 技能加载后，按其指引产出设计方案（以对话形式呈现）：
 - 技术方案：架构、数据流、关键技术选型与风险
-- 测试策略
+- 测试策略：引用 `openspec/changes/<name>/test-cases.md`，说明哪些用例需要单元、集成、端到端、视觉、手动或其他验证证据
 - 如需补充验收场景，标明将回写的 delta spec 变更
 
 brainstorming 阶段不写入 Design Doc 文件，仅产出设计方案供 Step 1c 用户确认。确认后才创建 `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` 并回写 delta spec。

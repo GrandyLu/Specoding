@@ -45,11 +45,13 @@ When loading the skill, ARGUMENTS must include:
 ```
 Language: Use the language of the user request that triggered this workflow.
 CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. When planning, prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts to locate implementation points; do not scan the whole source tree.
+Test Cases: openspec/changes/<name>/test-cases.md. Every implementation task in the plan must link to one or more test/verification cases. Cases may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other evidence appropriate to this change.
 ```
 
 After the skill loads, follow its guidance to create a plan. Plan files and execution feedback must use the language of the user request that triggered this workflow. Plan requirements:
 - Save to `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`
 - Reference design document, break down into executable tasks
+- Reference `openspec/changes/<name>/test-cases.md` and state each task's verification method; do not require a whole-project test-case catalog
 - **Plan file header must contain associated metadata**:
 
 ```yaml
@@ -171,16 +173,20 @@ Before loading `subagent-driven-development` or `executing-plans`, refresh build
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
 ```
 
+If this change involves UI, design files, an internal component library, or a design system, use the Skill tool to load the project-provided `comet-component-library` skill before loading the execution skill. The skill should provide internal component APIs, constraints, examples, and prohibitions. If the skill is still placeholder content or does not provide usable component guidance, record "component library context unavailable" and continue execution, but do not claim the implementation followed internal component-library constraints.
+
 When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint and CodeGraph constraint:
 
 ```text
 Language: Use the language of the user request that triggered this workflow.
 CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. First use CodeGraph to locate files to edit, callers, callees, and affected tests; read or modify only files pointed to by CodeGraph or explicitly required by the plan. Do not scan the whole repository.
+Test Cases: openspec/changes/<name>/test-cases.md. Before executing a task, confirm its corresponding test/verification cases and supplement or correct the matrix when needed; do not force every verification into unit-test code.
 ```
 
 After the skill loads, follow its guidance to execute:
 - Execute tasks according to plan
 - Complete tasks.md check (`- [ ]` → `- [x]`)
+- Complete or update each task's verification method, pass criteria, and evidence to collect in `test-cases.md`
 - Commit code after each task completion
 
 **`executing-plans` review gate**:
@@ -232,6 +238,7 @@ Build is the longest phase and may span many tasks. To support resume after cont
 ## Exit Conditions
 
 - All tasks.md checked
+- `test-cases.md` completed for this change, with every completed task linked to at least one verification case or an explicit not-applicable rationale
 - Code committed
 - Project-specific build/tests explicitly run and pass; do not rely only on guard auto-detection
 - `isolation` has been written as `branch` or `worktree`

@@ -64,7 +64,7 @@ async function detectInstalledCometLanguage(
   scope: InstallScope,
 ): Promise<SkillLanguage> {
   const skillsDir = path.join(baseDir, getPlatformSkillsDir(platform, scope), 'skills');
-  if (!(await fileExists(skillsDir))) return 'en';
+  if (!(await fileExists(skillsDir))) return 'zh';
 
   const entries = (await readDir(skillsDir)).filter((entry) => entry.startsWith('comet'));
 

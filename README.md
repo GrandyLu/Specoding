@@ -94,7 +94,7 @@ comet init
 
 1. Prompt you to select AI platforms (auto-detects existing configs)
 2. Choose install scope: project-level (current directory) or global (home directory)
-3. Select language for Comet skills: English or 中文
+3. Select language for Comet skills: 中文 (default) or English
 4. Install [OpenSpec](https://github.com/Fission-AI/OpenSpec) skills
 5. Install [Superpowers](https://github.com/obra/superpowers) skills
 6. Deploy Comet skills (in your chosen language) to selected platforms
@@ -133,6 +133,7 @@ Initializes OpenSpec, Superpowers, and Comet skills for selected AI coding platf
 | ----------------- | ------------------------------------------------------------------------------ |
 | `--yes`           | Non-interactive mode, auto-select detected platforms (or all if none detected) |
 | `--scope <scope>` | Install scope: `project` or `global`                                           |
+| `--language <lang>` | Skill language: `zh` (default) or `en`                                       |
 | `--skip-existing` | Skip already installed components                                              |
 | `--overwrite`     | Overwrite already installed components                                         |
 | `--json`          | Output structured JSON                                                         |
@@ -318,6 +319,7 @@ isolation: branch
 verify_mode: null
 design_doc: docs/superpowers/specs/YYYY-MM-DD-topic-design.md
 plan: docs/superpowers/plans/YYYY-MM-DD-feature.md
+test_cases: openspec/changes/<name>/test-cases.md
 verify_result: pending
 verification_report: null
 branch_status: pending
@@ -330,7 +332,7 @@ handoff_context: openspec/changes/<name>/.comet/handoff/design-context.json
 handoff_hash: <sha256>
 ```
 
-In full workflow, `build_mode`, `build_pause`, `isolation`, and `verify_mode` may temporarily be `null`; `build_mode` and `isolation` must be resolved before `build → verify`. `build_pause` records an internal build-phase pause point: `null` means no pause, while `plan-ready` means the plan has been generated and the user paused before choosing isolation and execution mode. It is not an execution mode and must not be written into `build_mode`. `verification_report` stays `null` until verification writes a report, and `verify-pass` requires that report to exist plus `branch_status: handled`. Fields after `archived` in the example are optional or script-derived: `direct_override` is only needed for full-workflow direct builds, project commands may be absent unless configured, and `handoff_context` / `handoff_hash` are recorded by `comet-handoff.sh` before leaving design. Projects can configure `build_command` / `verify_command` in the change or repo root, and guard will run those commands first and print failure output.
+In full workflow, `build_mode`, `build_pause`, `isolation`, and `verify_mode` may temporarily be `null`; `build_mode` and `isolation` must be resolved before `build → verify`. `build_pause` records an internal build-phase pause point: `null` means no pause, while `plan-ready` means the plan has been generated and the user paused before choosing isolation and execution mode. It is not an execution mode and must not be written into `build_mode`. `test_cases` points to the per-change verification matrix; entries may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other traceable evidence. `verification_report` stays `null` until verification writes a report, and `verify-pass` requires that report to exist plus `branch_status: handled`. Fields after `archived` in the example are optional or script-derived: `direct_override` is only needed for full-workflow direct builds, project commands may be absent unless configured, and `handoff_context` / `handoff_hash` are recorded by `comet-handoff.sh` before leaving design. Projects can configure `build_command` / `verify_command` in the change or repo root, and guard will run those commands first and print failure output.
 
 </details>
 

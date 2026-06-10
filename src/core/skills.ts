@@ -34,7 +34,7 @@ async function copyCometSkillsForPlatform(
   baseDir: string,
   platform: Platform,
   overwrite: boolean,
-  languageSkillsDir: string = 'skills',
+  languageSkillsDir: string = 'skills-zh',
   scope: InstallScope = 'project',
 ): Promise<{ copied: number; skipped: number }> {
   const assetsDir = getAssetsDir();

@@ -62,7 +62,8 @@ openspec/changes/<name>/
 ├── .comet.yaml
 ├── proposal.md       # Why + What: problem, goals, scope
 ├── design.md         # How (high-level): architecture decisions, approach selection
-└── tasks.md          # Task checklist (checkboxes)
+├── tasks.md          # Task checklist (checkboxes)
+└── test-cases.md     # Per-change test and verification matrix
 ```
 
 Create `.comet.yaml` state file:
@@ -83,6 +84,8 @@ fi
 "$COMET_BASH" "$COMET_STATE" init <name> full
 ```
 
+`init` creates a `test-cases.md` template and writes `test_cases: openspec/changes/<name>/test-cases.md` to `.comet.yaml`. Before entering build, complete this document with per-change verification cases. Cases may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other evidence appropriate to this change; do not maintain a whole-project test catalog here.
+
 ### 3. Entry State Verification
 
 Verify state machine has been correctly initialized:
@@ -101,8 +104,9 @@ Confirm the three documents have complete content:
 - **proposal.md**: problem background, goals, scope, non-goals
 - **design.md**: high-level architecture decisions, approach selection, data flow
 - **tasks.md**: task list, each task has a clear description
+- **test-cases.md**: this change's acceptance scenarios, related tasks, verification methods, pass criteria, and evidence location
 
-**File existence verification**: Confirm all three file paths exist and are non-empty. If any file is missing or empty, must not enter Step 5 or execute phase guard — return to creation step to fill the gap.
+**File existence verification**: Confirm all four file paths exist and are non-empty. If any file is missing or empty, must not enter Step 5 or execute phase guard — return to creation step to fill the gap.
 
 ### 5. User Review and Confirmation (Blocking Point)
 
@@ -114,6 +118,7 @@ AskUserQuestion must be presented as a single-select question with the following
 - **proposal.md**: problem background, goals, scope
 - **design.md**: high-level architecture decisions, approach selection
 - **tasks.md**: task count and key task descriptions
+- **test-cases.md**: key acceptance scenarios and verification methods; non-unit-test evidence is allowed
 
 **Options**:
 - "Confirm, proceed to next phase" — artifacts meet expectations, execute phase guard transition
@@ -123,7 +128,8 @@ After user selects "Confirm", proceed to exit conditions. When user selects "Nee
 
 ## Exit Conditions
 
-- proposal.md, design.md, tasks.md all created with complete content
+- proposal.md, design.md, tasks.md, test-cases.md all created with complete content
+- `.comet.yaml` `test_cases` points to this change's non-empty test and verification matrix
 - **User has confirmed** proposal, design, tasks content meets expectations
 - **Phase guard**: Run `"$COMET_BASH" "$COMET_GUARD" <change-name> open --apply`; after all PASS, auto-transitions to next phase
 

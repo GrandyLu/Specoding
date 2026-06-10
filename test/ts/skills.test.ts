@@ -85,6 +85,9 @@ describe('skills', () => {
       // Verify a key file was copied
       const cometSkillPath = path.join(tmpDir, '.claude', 'skills', 'comet', 'SKILL.md');
       expect(await fileExists(cometSkillPath)).toBe(true);
+      await expect(fs.readFile(cometSkillPath, 'utf-8')).resolves.toContain(
+        '# Comet — OpenSpec + Superpowers 双星开发流程',
+      );
     });
 
     it('skips existing files when overwrite is false', async () => {
@@ -130,8 +133,8 @@ describe('skills', () => {
       expect(command).toContain('Equivalent Comet skill: `comet-open`');
       expect(command).toContain('Use the invocation arguments below as the user input for this workflow:');
       expect(command).toContain('$ARGUMENTS');
-      expect(command).toContain('# Comet Phase 1: Open');
-      expect(command).toContain('## Steps');
+      expect(command).toContain('# Comet 阶段 1：开启（Open）');
+      expect(command).toContain('## 步骤');
       expect(command).toContain('"$COMET_BASH" "$COMET_STATE" init <name> full');
       expect(command).not.toContain('Immediately load the `comet-open` skill with the skill tool');
       expect(path.basename(commandPath)).toBe('comet-open.md');
@@ -525,6 +528,45 @@ describe('skills', () => {
       expect(enSkills['comet-tweak']).toContain(
         'Streamlined OpenSpec artifacts must use the language of the user request that triggered this workflow',
       );
+    });
+  });
+
+  describe('Comet test matrix and component library workflow', () => {
+    it('ships the reserved component-library skill and routes per-change test cases through bilingual workflows', async () => {
+      const manifest = await readManifest();
+      expect(manifest.skills).toContain('comet-component-library/SKILL.md');
+
+      for (const languageDir of ['skills', 'skills-zh'] as const) {
+        const componentLibrary = await fs.readFile(
+          path.resolve('assets', languageDir, 'comet-component-library', 'SKILL.md'),
+          'utf-8',
+        );
+        const open = await fs.readFile(
+          path.resolve('assets', languageDir, 'comet-open', 'SKILL.md'),
+          'utf-8',
+        );
+        const design = await fs.readFile(
+          path.resolve('assets', languageDir, 'comet-design', 'SKILL.md'),
+          'utf-8',
+        );
+        const build = await fs.readFile(
+          path.resolve('assets', languageDir, 'comet-build', 'SKILL.md'),
+          'utf-8',
+        );
+        const verify = await fs.readFile(
+          path.resolve('assets', languageDir, 'comet-verify', 'SKILL.md'),
+          'utf-8',
+        );
+
+        expect(componentLibrary).toMatch(/placeholder|占位/);
+        expect(open).toContain('test-cases.md');
+        expect(open).toContain('test_cases');
+        expect(design).toContain('comet-component-library');
+        expect(design).toContain('test-cases.md');
+        expect(build).toContain('comet-component-library');
+        expect(build).toContain('Test Cases: openspec/changes/<name>/test-cases.md');
+        expect(verify).toContain('openspec/changes/<name>/test-cases.md');
+      }
     });
   });
 

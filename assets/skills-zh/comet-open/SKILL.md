@@ -62,7 +62,8 @@ openspec/changes/<name>/
 ├── .comet.yaml
 ├── proposal.md       # Why + What：问题、目标、范围
 ├── design.md         # How（高层）：架构决策、方案选型
-└── tasks.md          # 任务清单（勾选框）
+├── tasks.md          # 任务清单（勾选框）
+└── test-cases.md     # 本 change 的测试/验证矩阵
 ```
 
 创建 `.comet.yaml` 状态文件：
@@ -83,6 +84,8 @@ fi
 "$COMET_BASH" "$COMET_STATE" init <name> full
 ```
 
+`init` 会创建 `test-cases.md` 模板，并在 `.comet.yaml` 中写入 `test_cases: openspec/changes/<name>/test-cases.md`。在进入 build 前必须补全该文档：测试用例可以是单元、集成、端到端、视觉、手动、构建、lint、可访问性或其他适合该 change 的验证方式；不要求为整个项目维护全量测试用例。
+
 ### 3. 入口状态验证
 
 验证状态机已正确初始化：
@@ -101,8 +104,9 @@ fi
 - **proposal.md**：问题背景、目标、范围、非目标
 - **design.md**：高层架构决策、方案选型、数据流
 - **tasks.md**：任务列表，每个任务有明确描述
+- **test-cases.md**：本 change 的验收场景、关联 task、验证方式、通过标准和证据位置
 
-**文件存在性验证**：逐个确认三个文件路径存在且非空。任一文件缺失或为空时，不得进入 Step 5 或执行阶段守卫，必须回到创建步骤补充。
+**文件存在性验证**：逐个确认四个文件路径存在且非空。任一文件缺失或为空时，不得进入 Step 5 或执行阶段守卫，必须回到创建步骤补充。
 
 ### 5. 用户审视确认（阻塞点）
 
@@ -114,6 +118,7 @@ AskUserQuestion 必须以单选题形式呈现，包含以下摘要和选项：
 - **proposal.md**：问题背景、目标、范围
 - **design.md**：高层架构决策、方案选型
 - **tasks.md**：任务数量和关键任务描述
+- **test-cases.md**：关键验收场景和验证方式；允许非单元测试形式的验证证据
 
 **选项**：
 - 「确认，继续下一阶段」— 产物符合预期，执行阶段守卫流转
@@ -123,7 +128,8 @@ AskUserQuestion 必须以单选题形式呈现，包含以下摘要和选项：
 
 ## 退出条件
 
-- proposal.md、design.md、tasks.md 均已创建且内容完整
+- proposal.md、design.md、tasks.md、test-cases.md 均已创建且内容完整
+- `.comet.yaml` 的 `test_cases` 指向本 change 的非空测试/验证矩阵
 - **用户已确认** proposal、design、tasks 内容符合预期
 - **阶段守卫**：运行 `"$COMET_BASH" "$COMET_GUARD" <change-name> open --apply`，全部 PASS 后自动流转到下一阶段
 

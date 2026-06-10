@@ -94,7 +94,7 @@ comet init
 
 1. 提示你选择 AI 平台（自动检测已有配置）
 2. 选择安装范围：项目级（当前目录）或全局（用户主目录）
-3. 选择 Comet 技能语言：English 或 中文
+3. 选择 Comet 技能语言：中文（默认）或 English
 4. 安装 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 技能
 5. 安装 [Superpowers](https://github.com/obra/superpowers) 技能
 6. 将 Comet 技能（你选择的语言）部署到所选平台
@@ -132,6 +132,7 @@ npx skills add rpamis/comet
 |--------|-------------|
 | `--yes` | 非交互模式，自动选择已检测平台（未检测到则选择全部） |
 | `--scope <scope>` | 安装范围：`project` 或 `global` |
+| `--language <lang>` | Skill 语言：`zh`（默认）或 `en` |
 | `--skip-existing` | 跳过已安装的组件 |
 | `--overwrite` | 覆盖已安装的组件 |
 | `--json` | 输出结构化 JSON |
@@ -317,6 +318,7 @@ isolation: branch
 verify_mode: null
 design_doc: docs/superpowers/specs/YYYY-MM-DD-topic-design.md
 plan: docs/superpowers/plans/YYYY-MM-DD-feature.md
+test_cases: openspec/changes/<name>/test-cases.md
 verify_result: pending
 verification_report: null
 branch_status: pending
@@ -329,7 +331,7 @@ handoff_context: openspec/changes/<name>/.comet/handoff/design-context.json
 handoff_hash: <sha256>
 ```
 
-full workflow 初始化时 `build_mode`、`build_pause`、`isolation` 和 `verify_mode` 可以暂时为 `null`；进入 `build → verify` 前必须完成 `build_mode` 与 `isolation` 决策并写入合法值。`build_pause` 记录 build 阶段内部暂停点：`null` 表示无暂停，`plan-ready` 表示 plan 已生成，用户在选择隔离方式和执行方式前暂停。它不是执行方式，不得写入 `build_mode`。`verification_report` 在验证报告生成前保持 `null`，`verify-pass` 要求该报告文件存在且 `branch_status: handled`。示例中 `archived` 之后的字段是可选字段或脚本派生字段：`direct_override` 只在 full workflow 直接构建时需要，项目命令未配置时可以不存在，`handoff_context` 和 `handoff_hash` 由 `comet-handoff.sh` 在离开 design 阶段前写入。项目可在 change 或仓库根配置中设置 `build_command` / `verify_command`，guard 会优先运行并打印失败输出。
+full workflow 初始化时 `build_mode`、`build_pause`、`isolation` 和 `verify_mode` 可以暂时为 `null`；进入 `build → verify` 前必须完成 `build_mode` 与 `isolation` 决策并写入合法值。`build_pause` 记录 build 阶段内部暂停点：`null` 表示无暂停，`plan-ready` 表示 plan 已生成，用户在选择隔离方式和执行方式前暂停。它不是执行方式，不得写入 `build_mode`。`test_cases` 指向当前 change 的测试/验证矩阵；条目可以是单元、集成、端到端、视觉、手动、构建、lint、可访问性或其他可追溯证据。`verification_report` 在验证报告生成前保持 `null`，`verify-pass` 要求该报告文件存在且 `branch_status: handled`。示例中 `archived` 之后的字段是可选字段或脚本派生字段：`direct_override` 只在 full workflow 直接构建时需要，项目命令未配置时可以不存在，`handoff_context` 和 `handoff_hash` 由 `comet-handoff.sh` 在离开 design 阶段前写入。项目可在 change 或仓库根配置中设置 `build_command` / `verify_command`，guard 会优先运行并打印失败输出。
 
 </details>
 

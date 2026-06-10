@@ -11,6 +11,7 @@
     "comet/scripts/comet-yaml-validate.sh",
     "comet/scripts/comet-codegraph-context.sh",
     "comet-open/SKILL.md",
+    "comet-component-library/SKILL.md",
     "comet-design/SKILL.md",
     "comet-build/SKILL.md",
     "comet-verify/SKILL.md",
@@ -20,7 +21,7 @@
     "comet-scan/SKILL.md"
   ],
   "languages": [
-    { "id": "en", "name": "English", "skillsDir": "skills" },
-    { "id": "zh", "name": "中文", "skillsDir": "skills-zh" }
+    { "id": "zh", "name": "中文", "skillsDir": "skills-zh" },
+    { "id": "en", "name": "English", "skillsDir": "skills" }
   ]
 }
