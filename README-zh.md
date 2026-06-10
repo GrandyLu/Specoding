@@ -228,6 +228,7 @@ npx skills add rpamis/comet
 | `/comet-archive` | 阶段 5：归档（delta spec 同步、状态标注） |
 | `/comet-hotfix` | 快捷路径：快速 bug 修复（跳过头脑风暴，不需要能力设计） |
 | `/comet-tweak` | 快捷路径：小改动（文案调整、配置调整、文档或 Prompt 优化） |
+| `/comet-scan` | 存量项目扫描：CodeGraph 索引 + OpenSpec explore 生成现有 spec |
 
 </details>
 
@@ -268,6 +269,9 @@ Spec 生命周期管理：propose、explore、sync、verify、archive 等。
 
 /comet-tweak（快捷路径，跳过头脑风暴和完整计划）
   open  -->  轻量构建  -->  轻量验证  -->  archive
+
+/comet-scan（存量项目扫描，不进入 change 状态机）
+  codegraph index  -->  OpenSpec explore  -->  现有 spec 草稿
 ```
 
 ### 五个阶段

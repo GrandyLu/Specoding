@@ -229,6 +229,7 @@ After `comet init`, three groups of skills are installed to the selected platfor
 | `/comet-archive` | Phase 5: Archive (delta spec sync, status annotation)          |
 | `/comet-hotfix`  | Preset: Quick bug fix (skips brainstorming)                    |
 | `/comet-tweak`   | Preset: Small change (skips brainstorming and full plan)       |
+| `/comet-scan`    | Existing-project scan: CodeGraph index + OpenSpec explore      |
 
 </details>
 
@@ -269,6 +270,9 @@ Development methodology: brainstorming, TDD, subagent-driven development, code r
 
 /comet-tweak (preset path, skips brainstorming and full plan)
   open  -->  lightweight build  -->  light verify  -->  archive
+
+/comet-scan (existing-project scan, outside the change state machine)
+  codegraph index  -->  OpenSpec explore  -->  existing spec draft
 ```
 
 ### Five Phases

@@ -93,6 +93,7 @@ describeShell('comet shell scripts', () => {
       'comet-handoff.sh',
       'comet-state.sh',
       'comet-yaml-validate.sh',
+      'comet-codegraph-context.sh',
     ]) {
       const content = await fs.readFile(path.join(scriptsDir, name), 'utf-8');
       await fs.writeFile(path.join(tmpScriptsDir, name), content.replace(/\r\n/g, '\n'));
@@ -319,7 +320,7 @@ describeShell('comet shell scripts', () => {
       [
         '#!/bin/bash',
         `. "${toBashPath(envScript)}"`,
-        'printf "%s\\n%s\\n%s\\n%s\\n%s\\n" "$COMET_STATE" "$COMET_GUARD" "$COMET_HANDOFF" "$COMET_ARCHIVE" "$COMET_BASH"',
+        'printf "%s\\n%s\\n%s\\n%s\\n%s\\n%s\\n" "$COMET_STATE" "$COMET_GUARD" "$COMET_HANDOFF" "$COMET_ARCHIVE" "$COMET_CODEGRAPH_CONTEXT" "$COMET_BASH"',
         '',
       ].join('\n'),
     );
@@ -331,6 +332,7 @@ describeShell('comet shell scripts', () => {
     expect(result.stdout).toContain('comet-guard.sh');
     expect(result.stdout).toContain('comet-handoff.sh');
     expect(result.stdout).toContain('comet-archive.sh');
+    expect(result.stdout).toContain('comet-codegraph-context.sh');
     expect(result.stdout).toContain('bash');
   }, 20_000);
 
@@ -385,6 +387,59 @@ describeShell('comet shell scripts', () => {
     expect(result.stdout).toContain('errexit-off');
     expect(result.stdout).toContain('nounset-off');
     expect(result.stdout).toContain('pipefail-off');
+  }, 20_000);
+
+  it('comet-codegraph-context.sh writes CodeGraph output for OpenSpec exploration', async () => {
+    const fakeBinDir = path.join(tmpDir, 'bin');
+    const fakeCodegraph = path.join(fakeBinDir, 'codegraph');
+    const contextScript = path.join(tmpDir, 'scripts', 'comet-codegraph-context.sh');
+    await writeFile(
+      fakeCodegraph,
+      [
+        '#!/bin/bash',
+        'case "$1" in',
+        '  index) echo "indexed $2" ;;',
+        '  status) echo "Files: 3"; echo "Nodes: 7" ;;',
+        '  files) echo "src/app.js (javascript, 2 symbols)" ;;',
+        '  query) echo "Search Results for \\"$2\\""; echo "function    demo"; echo "  src/app.js:1" ;;',
+        '  callees) echo "Callees of \\"$2\\""; echo "function    child"; echo "  src/app.js:2" ;;',
+        '  callers) echo "Callers of \\"$2\\""; echo "function    parent"; echo "  src/app.js:3" ;;',
+        '  impact) echo "Impact of changing \\"$2\\""; echo "src/app.js" ;;',
+        '  *) echo "unexpected $*" >&2; exit 2 ;;',
+        'esac',
+        '',
+      ].join('\n'),
+    );
+    await fs.chmod(fakeCodegraph, 0o755);
+    await writeFile(path.join(tmpDir, 'src', 'app.js'), 'function demo() {\n  return true;\n}\n');
+
+    const result = runBash(tmpDir, contextScript, ['.'], {
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    });
+    const context = await fs.readFile(
+      path.join(tmpDir, 'openspec', '.comet', 'codegraph-context.md'),
+      'utf-8',
+    );
+
+    expect(result.status).toBe(0);
+    expect(context).toContain('# CodeGraph Scan Context');
+    expect(context).toContain('## Index Output');
+    expect(context).toContain('indexed');
+    expect(context).toContain('## Index Status');
+    expect(context).toContain('Files: 3');
+    expect(context).toContain('## Indexed File Structure');
+    expect(context).toContain('src/app.js');
+    expect(context).toContain('## Symbol Search: service');
+    expect(context).toContain('Search Results for "service"');
+    expect(context).toContain('## Relationship Analysis');
+    expect(context).toContain('## Callees: demo');
+    expect(context).toContain('Callees of "demo"');
+    expect(context).toContain('## Callers: demo');
+    expect(context).toContain('Callers of "demo"');
+    expect(context).toContain('## Impact: demo');
+    expect(context).toContain('Impact of changing "demo"');
+    expect(context).toContain('## Targeted Source Excerpts');
+    expect(context).toContain('### src/app.js:1');
   }, 20_000);
 
   it('blocks build phase when the project build command fails', async () => {
@@ -1059,6 +1114,7 @@ describeShell('comet shell scripts', () => {
       'comet-guard.sh',
       'comet-handoff.sh',
       'comet-yaml-validate.sh',
+      'comet-codegraph-context.sh',
     ]) {
       const content = await fs.readFile(path.join(tmpDir, 'scripts', name), 'utf-8');
 

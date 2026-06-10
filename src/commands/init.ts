@@ -8,6 +8,7 @@ import {
   createWorkingDirs,
   type LanguageConfig,
 } from '../core/skills.js';
+import { installCodeGraph, type CodeGraphInstallStatus } from '../core/codegraph.js';
 import { installOpenSpec } from '../core/openspec.js';
 import { installSuperpowersForPlatforms } from '../core/superpowers.js';
 
@@ -179,7 +180,8 @@ function displaySummary(results: PlatformResult[], scope: InstallScope): void {
   console.log(`\n  Get started:`);
   console.log(`    /comet "your idea"  — Start a new change with full workflow`);
   console.log(`    /comet-hotfix       — Quick bug fix (skip brainstorming)`);
-  console.log(`    /comet-tweak        — Small change (skip brainstorming and plan)\n`);
+  console.log(`    /comet-tweak        — Small change (skip brainstorming and plan)`);
+  console.log(`    /comet-scan         — Index existing code and draft specs\n`);
 }
 
 export async function initCommand(targetPath: string, options: InitOptions = {}): Promise<void> {
@@ -194,6 +196,10 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
   const language = await selectLanguage(options);
   log(`  Language: ${language.name}`);
 
+  log(`\n  Installing CodeGraph dependency`);
+  const codegraphStatus: CodeGraphInstallStatus = await installCodeGraph(projectPath);
+  log(`  CodeGraph: ${codegraphStatus}`);
+
   const selectedPlatformIds = await selectPlatforms(detected, options);
   if (selectedPlatformIds.length === 0) {
     if (options.json) {
@@ -203,6 +209,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
             projectPath,
             scope,
             language: language.id,
+            codegraph: codegraphStatus,
             selectedPlatforms: [],
             results: [],
           },
@@ -334,6 +341,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
           projectPath,
           scope,
           language: language.id,
+          codegraph: codegraphStatus,
           selectedPlatforms: selectedPlatformIds,
           results: results.map((result) => ({
             platform: result.platform.id,
