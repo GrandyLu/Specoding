@@ -1,7 +1,7 @@
 // src/core/architecture-generator.ts
 
-import path from 'path';
-import fs from 'fs/promises';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 
 // 项目类型
 type ProjectType = 'frontend' | 'non-frontend';
