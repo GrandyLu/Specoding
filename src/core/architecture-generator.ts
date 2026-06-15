@@ -6,13 +6,15 @@ import * as fs from 'fs/promises';
 // 项目类型
 export type ProjectType = 'frontend' | 'non-frontend';
 
-// 导出项目类型和检测函数
+// 导出所有公共函数和类型
 export {
   detectProjectType,
   generateLayer1Diagram,
   generateCallGraphDiagram,
   validateMermaidSyntax,
   applyStandardizedNamespace,
+  applyFrontendColorCoding,
+  applyNonFrontendColorCoding,
   applyMermaidStandards
 };
 
@@ -570,32 +572,65 @@ function validateMermaidSyntax(mermaid: string): void {
  * 应用标准化命名空间
  */
 function applyStandardizedNamespace(mermaid: string, prefix: string): string {
-  const keywords = new Set(['graph', 'subgraph', 'end', 'classDef', 'class', 'style', 'linkStyle', 'LR', 'TD', 'RL', 'fill', 'stroke']);
+  const keywords = new Set(['graph', 'subgraph', 'end', 'classDef', 'class', 'style', 'linkStyle', 'LR', 'TD', 'RL', 'fill', 'stroke', '%%']);
 
   // 分割行进行处理
   const lines = mermaid.split('\n');
   const processedLines = lines.map(line => {
-    // 跳过空行和样式定义行
-    if (!line.trim() || line.includes('classDef') || line.includes('fill:') || line.includes('stroke:')) {
+    // 跳过空行、注释行和样式定义行
+    if (!line.trim() || line.trim().startsWith('%%') || line.includes('classDef') || line.includes('fill:') || line.includes('stroke:')) {
       return line;
     }
 
     // 特殊处理 subgraph 行：不前缀化 subgraph 后面的名称
-    if (line.trim().startsWith('subgraph ')) {
-      return line; // 保持 subgraph 行不变
+    if (line.trim().startsWith('subgraph ') || line.trim() === 'end') {
+      return line;
     }
 
-    // 处理每一行，替换节点ID
-    return line.replace(/\b([A-Za-z_]\w*)\b/g, (match) => {
+    // 处理每一行：识别节点ID并添加前缀
+    // 节点ID通常出现在这些模式中：
+    // - 作为边的起点或终点：A-->B, A-.->B
+    // - 在方括号前：A[...]
+    // - 在圆括号前：A(...)
+    // - 在大括号前：A{...}
+
+    // 先处理引号内的内容，保护它们不被替换
+    const quoteContents: string[] = [];
+    let protectedLine = line;
+
+    // 替换引号内容为占位符
+    protectedLine = protectedLine.replace(/"([^"]*)"/g, (match, content) => {
+      quoteContents.push(content);
+      return `"__QUOTE_${quoteContents.length - 1}__"`;
+    });
+
+    // 现在可以安全地替换节点ID
+    // 使用更精确的正则表达式来识别节点ID
+    protectedLine = protectedLine.replace(/([A-Za-z_]\w*)(?=\s*(?:-->|\.->|-\.->|\[|\(|\{))/g, (match) => {
       // 跳过关键词
       if (keywords.has(match)) return match;
       // 跳过已经前缀的
       if (match.startsWith(`${prefix}_`)) return match;
-      // 跳过纯数字
-      if (/^\d+$/.test(match)) return match;
       // 添加前缀
       return `${prefix}_${match}`;
     });
+
+    // 替换箭头符号后的节点ID
+    protectedLine = protectedLine.replace(/(-->|\.->|-\.->)\s*([A-Za-z_]\w*)(?=\s*(?:\[|\(|\{|$))/g, (match, arrow, nodeId) => {
+      // 跳过关键词
+      if (keywords.has(nodeId)) return match;
+      // 跳过已经前缀的
+      if (nodeId.startsWith(`${prefix}_`)) return match;
+      // 添加前缀
+      return `${arrow} ${prefix}_${nodeId}`;
+    });
+
+    // 恢复引号内容
+    protectedLine = protectedLine.replace(/"__QUOTE_(\d+)__"/g, (match, index) => {
+      return `"${quoteContents[parseInt(index)]}"`;
+    });
+
+    return protectedLine;
   });
 
   return processedLines.join('\n');

@@ -159,6 +159,18 @@ describe('Architecture Generator - Mermaid Standards', () => {
       const invalid = 'graph LR\n  subgraph A\n  B-->C';
       expect(() => validateMermaidSyntax(invalid)).toThrow();
     });
+
+    it('should accept TD graph direction', async () => {
+      const { validateMermaidSyntax } = await import('../../src/core/architecture-generator');
+      const valid = 'graph TD\n  A-->B';
+      expect(() => validateMermaidSyntax(valid)).not.toThrow();
+    });
+
+    it('should accept RL graph direction', async () => {
+      const { validateMermaidSyntax } = await import('../../src/core/architecture-generator');
+      const valid = 'graph RL\n  A-->B';
+      expect(() => validateMermaidSyntax(valid)).not.toThrow();
+    });
   });
 
   describe('applyStandardizedNamespace', () => {
@@ -176,6 +188,132 @@ describe('Architecture Generator - Mermaid Standards', () => {
       const result = applyStandardizedNamespace(input, 'MyModule');
       expect(result).toContain('subgraph A'); // Not MyModule_subgraph
       expect(result).toContain('classDef'); // Not MyModule_classDef
+    });
+
+    it('should not prefix keywords in edge definitions', async () => {
+      const { applyStandardizedNamespace } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  A-->B\n  C -.->D';
+      const result = applyStandardizedNamespace(input, 'MyModule');
+      expect(result).toContain('-->');
+      expect(result).toContain('-.->');
+      expect(result).toContain('MyModule_A');
+      expect(result).toContain('MyModule_B');
+    });
+
+    it('should handle complex node labels with quotes', async () => {
+      const { applyStandardizedNamespace } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  A["Label with spaces"]-->B["Another label"]';
+      const result = applyStandardizedNamespace(input, 'MyModule');
+      expect(result).toContain('MyModule_A');
+      expect(result).toContain('MyModule_B');
+      expect(result).toContain('Label with spaces');
+    });
+
+    it('should handle already prefixed nodes', async () => {
+      const { applyStandardizedNamespace } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  MyModule_A-->MyModule_B';
+      const result = applyStandardizedNamespace(input, 'MyModule');
+      // Should not double-prefix
+      expect(result).toContain('MyModule_A');
+      expect(result).not.toContain('MyModule_MyModule_A');
+    });
+
+    it('should handle empty lines and comments', async () => {
+      const { applyStandardizedNamespace } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  %% Comment\n  A-->B\n\n  C-->D';
+      const result = applyStandardizedNamespace(input, 'MyModule');
+      expect(result).toContain('%% Comment');
+      expect(result).toContain('MyModule_A');
+      expect(result).toContain('MyModule_C');
+    });
+  });
+
+  describe('applyFrontendColorCoding', () => {
+    it('should add frontend color styles to diagram without styles', async () => {
+      const { applyFrontendColorCoding } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  A-->B';
+      const result = applyFrontendColorCoding(input);
+      expect(result).toContain('classDef routeStyle');
+      expect(result).toContain('classDef pageStyle');
+      expect(result).toContain('classDef componentStyle');
+      expect(result).toContain('classDef stateStyle');
+      expect(result).toContain('classDef apiStyle');
+      expect(result).toContain('#e1f5fe'); // route color
+      expect(result).toContain('#f3e5f5'); // page color
+    });
+
+    it('should not duplicate styles if already present', async () => {
+      const { applyFrontendColorCoding } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  classDef routeStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px\n  A-->B';
+      const result = applyFrontendColorCoding(input);
+      // Should not add duplicate classDef lines
+      const classDefCount = (result.match(/classDef/g) || []).length;
+      expect(classDefCount).toBe(1);
+    });
+  });
+
+  describe('applyNonFrontendColorCoding', () => {
+    it('should add non-frontend color styles to diagram without styles', async () => {
+      const { applyNonFrontendColorCoding } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  A-->B';
+      const result = applyNonFrontendColorCoding(input);
+      expect(result).toContain('classDef controllerStyle');
+      expect(result).toContain('classDef serviceStyle');
+      expect(result).toContain('classDef databaseStyle');
+      expect(result).toContain('classDef utilityStyle');
+      expect(result).toContain('#e3f2fd'); // controller color
+      expect(result).toContain('#e8f5e9'); // service color
+    });
+
+    it('should not duplicate styles if already present', async () => {
+      const { applyNonFrontendColorCoding } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  classDef controllerStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px\n  A-->B';
+      const result = applyNonFrontendColorCoding(input);
+      // Should not add duplicate classDef lines
+      const classDefCount = (result.match(/classDef/g) || []).length;
+      expect(classDefCount).toBe(1);
+    });
+  });
+
+  describe('applyMermaidStandards', () => {
+    it('should apply all standards for frontend projects', async () => {
+      const { applyMermaidStandards } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  Route-->Page';
+      const result = applyMermaidStandards(input, 'frontend', 'MyApp');
+      expect(result).toContain('MyApp_Route');
+      expect(result).toContain('MyApp_Page');
+      expect(result).toContain('classDef routeStyle');
+      expect(result).toContain('classDef pageStyle');
+    });
+
+    it('should apply all standards for non-frontend projects', async () => {
+      const { applyMermaidStandards } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  Controller-->Service';
+      const result = applyMermaidStandards(input, 'non-frontend', 'MyAPI');
+      expect(result).toContain('MyAPI_Controller');
+      expect(result).toContain('MyAPI_Service');
+      expect(result).toContain('classDef controllerStyle');
+      expect(result).toContain('classDef serviceStyle');
+    });
+
+    it('should validate syntax after applying standards', async () => {
+      const { applyMermaidStandards } = await import('../../src/core/architecture-generator');
+      const validInput = 'graph LR\n  A-->B';
+      expect(() => applyMermaidStandards(validInput, 'frontend', 'MyApp')).not.toThrow();
+    });
+
+    it('should throw on invalid syntax after applying standards', async () => {
+      const { applyMermaidStandards } = await import('../../src/core/architecture-generator');
+      const invalidInput = 'A-->B'; // Missing graph direction
+      expect(() => applyMermaidStandards(invalidInput, 'frontend', 'MyApp')).toThrow();
+    });
+
+    it('should use default namespace prefix if not provided', async () => {
+      const { applyMermaidStandards } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  A-->B';
+      const result = applyMermaidStandards(input, 'frontend');
+      expect(result).toContain('Project_A');
+      expect(result).toContain('Project_B');
     });
   });
 });
