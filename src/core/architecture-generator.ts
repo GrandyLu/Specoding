@@ -6,6 +6,9 @@ import * as fs from 'fs/promises';
 // 项目类型
 export type ProjectType = 'frontend' | 'non-frontend';
 
+// 导出项目类型和检测函数
+export { detectProjectType };
+
 // 图层类型
 export type LayerType = 'layer1' | 'layer2' | 'layer3' | 'callgraph';
 
@@ -180,4 +183,43 @@ function extractModuleFromPath(routePath: string): string {
   if (segments.length === 0) return 'root';
   if (segments[0].startsWith(':')) return 'dynamic';
   return segments[0];
+}
+
+/**
+ * 检测项目类型（前端/非前端）
+ * 混合检测策略：package.json + 目录结构
+ */
+async function detectProjectType(projectPath: string): Promise<ProjectType> {
+  const hasPackageJson = await fileExists(path.join(projectPath, 'package.json'));
+
+  if (!hasPackageJson) {
+    // 检查目录结构
+    const hasComponentsDir = await directoryExists(path.join(projectPath, 'src/components'));
+    const hasViewsDir = await directoryExists(path.join(projectPath, 'src/views'));
+
+    return (hasComponentsDir || hasViewsDir) ? 'frontend' : 'non-frontend';
+  }
+
+  // 读取 package.json 检查依赖
+  try {
+    const pkg = await readJsonFile<{ dependencies?: Record<string, string>, devDependencies?: Record<string, string> }>(
+      path.join(projectPath, 'package.json')
+    );
+    const dependencies = { ...pkg.dependencies, ...pkg.devDependencies };
+
+    const hasFrontendDeps = Object.keys(dependencies).some(dep =>
+      dep === 'react' || dep === 'vue' || dep === 'angular' ||
+      dep.startsWith('@react') || dep.startsWith('@vue') || dep.startsWith('@angular')
+    );
+
+    if (hasFrontendDeps) return 'frontend';
+  } catch (error) {
+    // package.json 读取失败，继续检查目录结构
+  }
+
+  // 再次检查目录结构（双重确认）
+  const hasComponentsDir = await directoryExists(path.join(projectPath, 'src/components'));
+  const hasViewsDir = await directoryExists(path.join(projectPath, 'src/views'));
+
+  return (hasComponentsDir || hasViewsDir) ? 'frontend' : 'non-frontend';
 }
