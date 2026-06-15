@@ -109,31 +109,47 @@ async function directoryExists(dirPath: string): Promise<boolean> {
  * 读取文件内容
  */
 async function readFile(filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
-  return await fs.readFile(filePath, encoding);
+  try {
+    return await fs.readFile(filePath, encoding);
+  } catch (error) {
+    throw new Error(`Failed to read file ${filePath}: ${(error as Error).message}`);
+  }
 }
 
 /**
  * 写入文件
  */
 async function writeFile(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<void> {
-  const dir = path.dirname(filePath);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(filePath, content, encoding);
+  try {
+    const dir = path.dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(filePath, content, encoding);
+  } catch (error) {
+    throw new Error(`Failed to write file ${filePath}: ${(error as Error).message}`);
+  }
 }
 
 /**
  * 追加内容到文件
  */
 async function appendToFile(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<void> {
-  await fs.appendFile(filePath, content, encoding);
+  try {
+    await fs.appendFile(filePath, content, encoding);
+  } catch (error) {
+    throw new Error(`Failed to append to file ${filePath}: ${(error as Error).message}`);
+  }
 }
 
 /**
  * 读取 JSON 文件
  */
 async function readJsonFile<T = any>(filePath: string): Promise<T> {
-  const content = await readFile(filePath);
-  return JSON.parse(content) as T;
+  try {
+    const content = await readFile(filePath);
+    return JSON.parse(content) as T;
+  } catch (error) {
+    throw new Error(`Failed to read or parse JSON file ${filePath}: ${(error as Error).message}`);
+  }
 }
 
 /**
