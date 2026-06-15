@@ -125,7 +125,7 @@ async function readFile(filePath: string, encoding: BufferEncoding = 'utf-8'): P
   try {
     return await fs.readFile(filePath, encoding);
   } catch (error) {
-    throw new Error(`Failed to read file ${filePath}: ${(error as Error).message}`);
+    throw new Error(`Failed to read file ${filePath}: ${(error as Error).message}`, { cause: error });
   }
 }
 
@@ -138,30 +138,19 @@ async function writeFile(filePath: string, content: string, encoding: BufferEnco
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(filePath, content, encoding);
   } catch (error) {
-    throw new Error(`Failed to write file ${filePath}: ${(error as Error).message}`);
-  }
-}
-
-/**
- * 追加内容到文件
- */
-async function appendToFile(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<void> {
-  try {
-    await fs.appendFile(filePath, content, encoding);
-  } catch (error) {
-    throw new Error(`Failed to append to file ${filePath}: ${(error as Error).message}`);
+    throw new Error(`Failed to write file ${filePath}: ${(error as Error).message}`, { cause: error });
   }
 }
 
 /**
  * 读取 JSON 文件
  */
-async function readJsonFile<T = any>(filePath: string): Promise<T> {
+async function readJsonFile<T = unknown>(filePath: string): Promise<T> {
   try {
     const content = await readFile(filePath);
     return JSON.parse(content) as T;
   } catch (error) {
-    throw new Error(`Failed to read or parse JSON file ${filePath}: ${(error as Error).message}`);
+    throw new Error(`Failed to read or parse JSON file ${filePath}: ${(error as Error).message}`, { cause: error });
   }
 }
 
@@ -183,16 +172,6 @@ function countNodes(mermaid: string): number {
   // 统计方括号内的节点定义（简单估算）
   const matches = mermaid.match(/\w+\[/g);
   return matches ? matches.length : 0;
-}
-
-/**
- * 从路径提取模块名
- */
-function extractModuleFromPath(routePath: string): string {
-  const segments = routePath.split('/').filter(Boolean);
-  if (segments.length === 0) return 'root';
-  if (segments[0].startsWith(':')) return 'dynamic';
-  return segments[0];
 }
 
 /**
@@ -223,7 +202,7 @@ async function detectProjectType(projectPath: string): Promise<ProjectType> {
     );
 
     if (hasFrontendDeps) return 'frontend';
-  } catch (error) {
+  } catch {
     // package.json 读取失败，继续检查目录结构
   }
 
@@ -373,45 +352,10 @@ async function generateLayer1Diagram(projectPath: string): Promise<string> {
 }
 
 /**
- * 检测符号类型
- */
-function detectSymbolType(symbol: string, filePath: string): CallNode['type'] {
-  const lowerSymbol = symbol.toLowerCase();
-  const lowerFile = filePath.toLowerCase();
-
-  // 控制器检测
-  if (lowerSymbol.includes('controller') ||
-      lowerFile.includes('controller') ||
-      lowerSymbol.includes('handler') ||
-      lowerSymbol.includes('route')) {
-    return 'controller';
-  }
-
-  // 数据库相关
-  if (lowerSymbol.includes('db') ||
-      lowerSymbol.includes('database') ||
-      lowerSymbol.includes('repository') ||
-      lowerSymbol.includes('model') ||
-      lowerFile.includes('db')) {
-    return 'database';
-  }
-
-  // 服务层
-  if (lowerSymbol.includes('service') ||
-      lowerSymbol.includes('business') ||
-      lowerFile.includes('services')) {
-    return 'service';
-  }
-
-  // 默认为工具类
-  return 'utility';
-}
-
-/**
  * 查询调用关系图
  * 注意：这里简化实现，实际需要查询 codegraph.db
  */
-async function queryCallGraph(dbPath: string): Promise<CallRelation[]> {
+async function queryCallGraph(_dbPath: string): Promise<CallRelation[]> {
   // 简化实现：返回模拟数据
   // 实际实现需要使用 better-sqlite3 查询数据库
   return [];
@@ -439,7 +383,7 @@ function layerCallGraph(relations: CallRelation[]): LayeredCallGraph {
     }
   });
 
-  for (const [symbol, node] of nodeMap) {
+  for (const [, node] of nodeMap) {
     switch (node.type) {
       case 'controller':
         layered.controllers.push(node);
