@@ -105,3 +105,31 @@ describe('Architecture Generator - Layer 1 Routes', () => {
     });
   });
 });
+
+describe('Architecture Generator - Call Graph', () => {
+  describe('generateCallGraphDiagram', () => {
+    it('should generate call graph for non-frontend project', async () => {
+      // Mock empty database result for simplicity
+      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
+      vi.spyOn(fs, 'stat').mockResolvedValue({ isDirectory: () => true } as never);
+
+      const { generateCallGraphDiagram } = await import('../../src/core/architecture-generator');
+      const mermaid = await generateCallGraphDiagram('/test', '/test/codegraph.db');
+      expect(mermaid).toContain('graph TD');
+      // Should have style definitions
+      expect(mermaid).toContain('classDef');
+    });
+
+    it('should apply color coding by layer', async () => {
+      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
+      vi.spyOn(fs, 'stat').mockResolvedValue({ isDirectory: () => true } as never);
+
+      const { generateCallGraphDiagram } = await import('../../src/core/architecture-generator');
+      const mermaid = await generateCallGraphDiagram('/test', '/test/codegraph.db');
+      expect(mermaid).toContain('controllerStyle');
+      expect(mermaid).toContain('serviceStyle');
+      expect(mermaid).toContain('databaseStyle');
+      expect(mermaid).toContain('utilityStyle');
+    });
+  });
+});

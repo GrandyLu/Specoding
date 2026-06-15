@@ -7,7 +7,7 @@ import * as fs from 'fs/promises';
 export type ProjectType = 'frontend' | 'non-frontend';
 
 // 导出项目类型和检测函数
-export { detectProjectType, generateLayer1Diagram };
+export { detectProjectType, generateLayer1Diagram, generateCallGraphDiagram };
 
 // 图层类型
 export type LayerType = 'layer1' | 'layer2' | 'layer3' | 'callgraph';
@@ -360,4 +360,172 @@ async function generateLayer1Diagram(projectPath: string): Promise<string> {
   }
 
   return generateMultiLayer1Diagram(chunks);
+}
+
+/**
+ * 检测符号类型
+ */
+function detectSymbolType(symbol: string, filePath: string): CallNode['type'] {
+  const lowerSymbol = symbol.toLowerCase();
+  const lowerFile = filePath.toLowerCase();
+
+  // 控制器检测
+  if (lowerSymbol.includes('controller') ||
+      lowerFile.includes('controller') ||
+      lowerSymbol.includes('handler') ||
+      lowerSymbol.includes('route')) {
+    return 'controller';
+  }
+
+  // 数据库相关
+  if (lowerSymbol.includes('db') ||
+      lowerSymbol.includes('database') ||
+      lowerSymbol.includes('repository') ||
+      lowerSymbol.includes('model') ||
+      lowerFile.includes('db')) {
+    return 'database';
+  }
+
+  // 服务层
+  if (lowerSymbol.includes('service') ||
+      lowerSymbol.includes('business') ||
+      lowerFile.includes('services')) {
+    return 'service';
+  }
+
+  // 默认为工具类
+  return 'utility';
+}
+
+/**
+ * 查询调用关系图
+ * 注意：这里简化实现，实际需要查询 codegraph.db
+ */
+async function queryCallGraph(dbPath: string): Promise<CallRelation[]> {
+  // 简化实现：返回模拟数据
+  // 实际实现需要使用 better-sqlite3 查询数据库
+  return [];
+}
+
+/**
+ * 按层次分组调用关系
+ */
+function layerCallGraph(relations: CallRelation[]): LayeredCallGraph {
+  const layered = {
+    controllers: [] as CallNode[],
+    services: [] as CallNode[],
+    databases: [] as CallNode[],
+    utilities: [] as CallNode[]
+  };
+
+  const nodeMap = new Map<string, CallNode>();
+
+  relations.forEach(rel => {
+    if (!nodeMap.has(rel.caller.symbol)) {
+      nodeMap.set(rel.caller.symbol, rel.caller);
+    }
+    if (!nodeMap.has(rel.callee.symbol)) {
+      nodeMap.set(rel.callee.symbol, rel.callee);
+    }
+  });
+
+  for (const [symbol, node] of nodeMap) {
+    switch (node.type) {
+      case 'controller':
+        layered.controllers.push(node);
+        break;
+      case 'service':
+        layered.services.push(node);
+        break;
+      case 'database':
+        layered.databases.push(node);
+        break;
+      default:
+        layered.utilities.push(node);
+    }
+  }
+
+  return layered;
+}
+
+/**
+ * 分块调用关系图
+ */
+function chunkCallGraph(layered: LayeredCallGraph, maxSize: number = 18): LayeredCallGraph[] {
+  const allNodes = [
+    ...layered.controllers.map(n => ({ ...n, type: 'controller' as const })),
+    ...layered.services.map(n => ({ ...n, type: 'service' as const })),
+    ...layered.databases.map(n => ({ ...n, type: 'database' as const })),
+    ...layered.utilities.map(n => ({ ...n, type: 'utility' as const }))
+  ];
+
+  // 如果没有节点，返回一个空的 LayeredCallGraph
+  if (allNodes.length === 0) {
+    return [layered];
+  }
+
+  const nodeChunks = chunkArray(allNodes, maxSize);
+
+  return nodeChunks.map(chunk => ({
+    controllers: chunk.filter(n => n.type === 'controller'),
+    services: chunk.filter(n => n.type === 'service'),
+    databases: chunk.filter(n => n.type === 'database'),
+    utilities: chunk.filter(n => n.type === 'utility')
+  }));
+}
+
+/**
+ * 生成单个调用关系图
+ */
+function generateSingleCallGraphDiagram(layered: LayeredCallGraph): string {
+  let mermaid = 'graph TD\n\n';
+
+  // 添加样式定义
+  mermaid += '  classDef controllerStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;\n';
+  mermaid += '  classDef serviceStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;\n';
+  mermaid += '  classDef databaseStyle fill:#fffde7,stroke:#f9a825,stroke-width:2px;\n';
+  mermaid += '  classDef utilityStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;\n\n';
+
+  // 使用 subgraph 分组
+  if (layered.controllers.length > 0) {
+    mermaid += '  subgraph Controllers\n';
+    layered.controllers.forEach((node, i) => {
+      mermaid += `    Controller_${i}["${node.symbol}"]:::controllerStyle\n`;
+    });
+    mermaid += '  end\n\n';
+  }
+
+  if (layered.services.length > 0) {
+    mermaid += '  subgraph Services\n';
+    layered.services.forEach((node, i) => {
+      mermaid += `    Service_${i}["${node.symbol}"]:::serviceStyle\n`;
+    });
+    mermaid += '  end\n\n';
+  }
+
+  if (layered.databases.length > 0) {
+    mermaid += '  subgraph Database\n';
+    layered.databases.forEach((node, i) => {
+      mermaid += `    DB_${i}["${node.symbol}"]:::databaseStyle\n`;
+    });
+    mermaid += '  end\n\n';
+  }
+
+  return mermaid;
+}
+
+/**
+ * 生成调用关系图
+ */
+async function generateCallGraphDiagram(projectPath: string, dbPath: string): Promise<string> {
+  const callGraph = await queryCallGraph(dbPath);
+  const layered = layerCallGraph(callGraph);
+  const chunks = chunkCallGraph(layered, 18);
+
+  if (chunks.length === 1) {
+    return generateSingleCallGraphDiagram(chunks[0]);
+  }
+
+  // 多图情况：简化处理，返回第一张图
+  return generateSingleCallGraphDiagram(chunks[0]);
 }
