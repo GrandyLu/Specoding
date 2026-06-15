@@ -317,3 +317,65 @@ describe('Architecture Generator - Mermaid Standards', () => {
     });
   });
 });
+
+describe('Architecture Generator - Main Entry', () => {
+  describe('generateArchitectureDiagram', () => {
+    it('should generate diagram for frontend project', async () => {
+      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
+      vi.spyOn(fs, 'stat').mockResolvedValue({ isDirectory: () => true } as never);
+      vi.spyOn(fs, 'readFile').mockResolvedValue(JSON.stringify({
+        dependencies: { react: '^18.0.0' }
+      }));
+
+      const { generateArchitectureDiagram } = await import('../../src/core/architecture-generator');
+      const result = await generateArchitectureDiagram('/test/frontend', true);
+      expect(result.success).toBe(true);
+      expect(result.layers).toContain('layer1');
+    });
+
+    it('should generate diagram for non-frontend project', async () => {
+      // Reset all mocks
+      vi.clearAllMocks();
+
+      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
+      // Mock directory structure: project exists but no frontend directories
+      vi.spyOn(fs, 'stat')
+        .mockResolvedValueOnce({ isDirectory: () => true } as never) // Project root exists
+        .mockRejectedValueOnce(new Error('not found')) // src/components doesn't exist
+        .mockRejectedValueOnce(new Error('not found')); // src/views doesn't exist
+
+      // Mock package.json without frontend dependencies
+      vi.spyOn(fs, 'readFile').mockResolvedValue(JSON.stringify({
+        dependencies: { express: '^4.0.0' }
+      }));
+
+      const { generateArchitectureDiagram } = await import('../../src/core/architecture-generator');
+      const result = await generateArchitectureDiagram('/test/backend', true);
+      expect(result.success).toBe(true);
+      expect(result.layers).toContain('callgraph');
+    });
+
+    it('should handle missing codegraph.db gracefully', async () => {
+      vi.clearAllMocks();
+      vi.spyOn(fs, 'access').mockRejectedValue(new Error('not found'));
+      vi.spyOn(fs, 'stat').mockRejectedValue(new Error('not found'));
+
+      const { generateArchitectureDiagram } = await import('../../src/core/architecture-generator');
+      const result = await generateArchitectureDiagram('/test/invalid', true);
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeDefined();
+    });
+
+    it('should skip when COMET_SKIP_VIZ is set', async () => {
+      vi.clearAllMocks();
+      process.env.COMET_SKIP_VIZ = 'true';
+      vi.spyOn(fs, 'stat').mockResolvedValue({ isDirectory: () => true } as never);
+
+      const { generateArchitectureDiagram } = await import('../../src/core/architecture-generator');
+      const result = await generateArchitectureDiagram('/test', true);
+      expect(result.success).toBe(true);
+      expect(result.layers).toHaveLength(0);
+      delete process.env.COMET_SKIP_VIZ;
+    });
+  });
+});

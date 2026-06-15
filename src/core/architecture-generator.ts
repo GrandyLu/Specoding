@@ -15,7 +15,8 @@ export {
   applyStandardizedNamespace,
   applyFrontendColorCoding,
   applyNonFrontendColorCoding,
-  applyMermaidStandards
+  applyMermaidStandards,
+  generateArchitectureDiagram
 };
 
 // 图层类型
@@ -704,4 +705,131 @@ function applyMermaidStandards(
   validateMermaidSyntax(normalized);
 
   return normalized;
+}
+
+/**
+ * 检查 CodeGraph 数据库是否存在
+ */
+async function checkCodeGraphDatabase(projectPath: string): Promise<string> {
+  const dbPath = path.join(projectPath, '.codegraph/codegraph.db');
+  if (!await fileExists(dbPath)) {
+    throw new Error('CodeGraph database not found. Please run codegraph init first.');
+  }
+  return dbPath;
+}
+
+/**
+ * 执行非交互式生成
+ */
+async function executeNonInteractiveGeneration(
+  projectPath: string,
+  projectType: ProjectType,
+  outputPath: string
+): Promise<GenerationResult> {
+  const result: GenerationResult = {
+    success: false,
+    layers: [],
+    nodeCount: 0,
+    outputPath,
+    errors: []
+  };
+
+  try {
+    let layer1Mermaid: string;
+
+    if (projectType === 'frontend') {
+      layer1Mermaid = await generateLayer1Diagram(projectPath);
+      result.layers.push('layer1');
+    } else {
+      const dbPath = await checkCodeGraphDatabase(projectPath);
+      layer1Mermaid = await generateCallGraphDiagram(projectPath, dbPath);
+      result.layers.push('callgraph');
+    }
+
+    // 应用 Mermaid 规范
+    const normalized = applyMermaidStandards(layer1Mermaid, projectType, 'Project');
+
+    await writeFile(outputPath, normalized, 'utf-8');
+    result.nodeCount = countNodes(normalized);
+    result.success = true;
+
+    return result;
+
+  } catch (error) {
+    result.errors.push((error as Error).message);
+    return result;
+  }
+}
+
+/**
+ * 执行交互式生成（简化版本，仅 Layer 1）
+ */
+async function executeInteractiveGeneration(
+  projectPath: string,
+  projectType: ProjectType,
+  outputPath: string
+): Promise<GenerationResult> {
+  // 简化实现：交互式版本目前与非交互式相同
+  // 完整实现需要集成 @inquirer/prompts
+  return await executeNonInteractiveGeneration(projectPath, projectType, outputPath);
+}
+
+/**
+ * 生成项目架构图的主入口函数
+ *
+ * @param projectPath 项目根目录
+ * @param interactive 是否启用交互式模式（默认 true）
+ * @param outputPath 输出文件路径（默认 '.codegraph/architecture.mmd'）
+ * @returns 生成结果
+ */
+async function generateArchitectureDiagram(
+  projectPath: string,
+  interactive: boolean = true,
+  outputPath: string = '.codegraph/architecture.mmd'
+): Promise<GenerationResult> {
+  // 参数验证
+  if (!projectPath || !await directoryExists(projectPath)) {
+    return {
+      success: false,
+      layers: [],
+      nodeCount: 0,
+      outputPath,
+      errors: ['Invalid project path']
+    };
+  }
+
+  // 检查是否跳过可视化
+  if (process.env.COMET_SKIP_VIZ === 'true') {
+    console.log('  Skipping architecture visualization (COMET_SKIP_VIZ=true)');
+    return {
+      success: true,
+      layers: [],
+      nodeCount: 0,
+      outputPath,
+      errors: []
+    };
+  }
+
+  try {
+    // 检测项目类型
+    const projectType = await detectProjectType(projectPath);
+    console.log(`  Detected project type: ${projectType}`);
+
+    // 执行生成
+    if (interactive) {
+      return await executeInteractiveGeneration(projectPath, projectType, outputPath);
+    } else {
+      return await executeNonInteractiveGeneration(projectPath, projectType, outputPath);
+    }
+
+  } catch (error) {
+    // 所有错误都不抛出，返回失败结果
+    return {
+      success: false,
+      layers: [],
+      nodeCount: 0,
+      outputPath,
+      errors: [(error as Error).message]
+    };
+  }
 }
