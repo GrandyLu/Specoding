@@ -61,3 +61,40 @@ describe('Architecture Generator - Project Type Detection', () => {
     });
   });
 });
+
+describe('Architecture Generator - Layer 1 Routes', () => {
+  describe('generateLayer1Diagram', () => {
+    it('should generate simple route diagram', async () => {
+      // Mock project structure
+      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
+      vi.spyOn(fs, 'readFile').mockResolvedValue(`
+        export const routes = [
+          { path: '/home', component: 'HomePage' },
+          { path: '/about', component: 'AboutPage' }
+        ];
+      `);
+
+      const { generateLayer1Diagram } = await import('../../src/core/architecture-generator');
+      const mermaid = await generateLayer1Diagram('/test');
+      expect(mermaid).toContain('graph LR');
+      expect(mermaid).toContain('Route_0');
+      expect(mermaid).toContain('home');
+    });
+
+    it('should chunk large route sets', async () => {
+      // Mock multiple files with 25+ routes total
+      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
+      const routes = Array.from({ length: 25 }, (_, i) => ({
+        path: `/route${i}`,
+        component: `Component${i}`
+      }));
+
+      const routeContent = `export const routes = ${JSON.stringify(routes)};`;
+      vi.spyOn(fs, 'readFile').mockResolvedValue(routeContent);
+
+      const { generateLayer1Diagram } = await import('../../src/core/architecture-generator');
+      const mermaid = await generateLayer1Diagram('/test');
+      expect(mermaid).toContain('subgraph'); // Should use subgraph for chunking
+    });
+  });
+});

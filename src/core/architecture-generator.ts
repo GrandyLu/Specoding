@@ -7,7 +7,7 @@ import * as fs from 'fs/promises';
 export type ProjectType = 'frontend' | 'non-frontend';
 
 // 导出项目类型和检测函数
-export { detectProjectType };
+export { detectProjectType, generateLayer1Diagram };
 
 // 图层类型
 export type LayerType = 'layer1' | 'layer2' | 'layer3' | 'callgraph';
@@ -222,4 +222,142 @@ async function detectProjectType(projectPath: string): Promise<ProjectType> {
   const hasViewsDir = await directoryExists(path.join(projectPath, 'src/views'));
 
   return (hasComponentsDir || hasViewsDir) ? 'frontend' : 'non-frontend';
+}
+
+/**
+ * 扫描路由文件
+ */
+async function scanRouteFiles(projectPath: string): Promise<RouteMapping[]> {
+  const routeFiles = [
+    'src/router/index.ts',
+    'src/router/index.js',
+    'src/routes.ts',
+    'src/routes.js',
+    'src/pages/index.ts',
+    'src/views/index.ts'
+  ];
+
+  const routes: RouteMapping[] = [];
+
+  for (const file of routeFiles) {
+    const filePath = path.join(projectPath, file);
+    if (await fileExists(filePath)) {
+      const fileRoutes = await extractRouteMappings(filePath);
+      routes.push(...fileRoutes);
+    }
+  }
+
+  return routes;
+}
+
+/**
+ * 从路由文件提取路由映射
+ */
+async function extractRouteMappings(filePath: string): Promise<RouteMapping[]> {
+  try {
+    const content = await readFile(filePath);
+    const routes: RouteMapping[] = [];
+
+    // 简单的路由解析：查找 { path: 'xxx', component: 'xxx' } 模式
+    // 支持多种格式：JSON ({'path':...}) 和 对象字面量 ({path:...})
+    const routePattern = /{['"]?\s*path\s*['"]?\s*:\s*['"]([^'"]+)['"]\s*,\s*['"]?\s*component\s*['"]?\s*:\s*['"]([^'"]+)['"]\s*}/g;
+    let match;
+
+    while ((match = routePattern.exec(content)) !== null) {
+      routes.push({
+        path: match[1],
+        component: match[2],
+        file: filePath
+      });
+    }
+
+    return routes;
+  } catch (error) {
+    console.warn(`Failed to parse route file ${filePath}: ${error}`);
+    return [];
+  }
+}
+
+/**
+ * 智能分组路由
+ */
+function chunkByModule(routes: RouteMapping[]): RouteMapping[][] {
+  if (routes.length === 0) {
+    return [];
+  }
+
+  const chunks: RouteMapping[][] = [];
+  const MAX_ROUTES_PER_CHUNK = 18;
+
+  // 不分组，直接按数量分块
+  for (let i = 0; i < routes.length; i += MAX_ROUTES_PER_CHUNK) {
+    chunks.push(routes.slice(i, i + MAX_ROUTES_PER_CHUNK));
+  }
+
+  return chunks;
+}
+
+/**
+ * 生成单个 Layer 1 图表
+ */
+function generateSingleLayer1Diagram(routes: RouteMapping[]): string {
+  let mermaid = 'graph LR\n';
+
+  // 添加样式定义
+  mermaid += '  classDef routeStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px;\n';
+  mermaid += '  classDef pageStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;\n\n';
+
+  // 添加节点和边
+  routes.forEach((route, index) => {
+    const routeId = `Route_${index}`;
+    const pageId = `Page_${index}`;
+
+    mermaid += `  ${routeId}[${route.path}]:::routeStyle\n`;
+    mermaid += `  ${pageId}[${route.component}]:::pageStyle\n`;
+    mermaid += `  ${routeId} --> ${pageId}\n`;
+  });
+
+  return mermaid;
+}
+
+/**
+ * 生成多个 Layer 1 图表（使用 subgraph）
+ */
+function generateMultiLayer1Diagram(chunks: RouteMapping[][]): string {
+  let mermaid = 'graph LR\n\n';
+
+  chunks.forEach((chunk, chunkIndex) => {
+    mermaid += `  subgraph Module_${chunkIndex}\n`;
+
+    chunk.forEach((route, index) => {
+      const routeId = `Route_${chunkIndex}_${index}`;
+      const pageId = `Page_${chunkIndex}_${index}`;
+
+      mermaid += `    ${routeId}[${route.path}]:::routeStyle\n`;
+      mermaid += `    ${pageId}[${route.component}]:::pageStyle\n`;
+      mermaid += `    ${routeId} --> ${pageId}\n`;
+    });
+
+    mermaid += '  end\n\n';
+  });
+
+  // 添加样式定义
+  mermaid += '  classDef routeStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px;\n';
+  mermaid += '  classDef pageStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;\n';
+
+  return mermaid;
+}
+
+/**
+ * 生成 Layer 1 全局路由图
+ */
+async function generateLayer1Diagram(projectPath: string): Promise<string> {
+  const routes = await scanRouteFiles(projectPath);
+  const chunks = chunkByModule(routes);
+
+  if (chunks.length === 1) {
+    return generateSingleLayer1Diagram(chunks[0]);
+  }
+
+  return generateMultiLayer1Diagram(chunks);
 }
