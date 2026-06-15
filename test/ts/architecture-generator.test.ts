@@ -133,3 +133,49 @@ describe('Architecture Generator - Call Graph', () => {
     });
   });
 });
+
+describe('Architecture Generator - Mermaid Standards', () => {
+  describe('validateMermaidSyntax', () => {
+    it('should pass valid Mermaid syntax', async () => {
+      const { validateMermaidSyntax } = await import('../../src/core/architecture-generator');
+      const valid = 'graph LR\n  A-->B';
+      expect(() => validateMermaidSyntax(valid)).not.toThrow();
+    });
+
+    it('should fail invalid Mermaid syntax', async () => {
+      const { validateMermaidSyntax } = await import('../../src/core/architecture-generator');
+      const invalid = 'A-->B'; // Missing graph direction
+      expect(() => validateMermaidSyntax(invalid)).toThrow();
+    });
+
+    it('should detect unclosed quotes', async () => {
+      const { validateMermaidSyntax } = await import('../../src/core/architecture-generator');
+      const invalid = 'graph LR\n  A["Unclosed quote]';
+      expect(() => validateMermaidSyntax(invalid)).toThrow();
+    });
+
+    it('should detect mismatched subgraph/end', async () => {
+      const { validateMermaidSyntax } = await import('../../src/core/architecture-generator');
+      const invalid = 'graph LR\n  subgraph A\n  B-->C';
+      expect(() => validateMermaidSyntax(invalid)).toThrow();
+    });
+  });
+
+  describe('applyStandardizedNamespace', () => {
+    it('should add prefix to node IDs', async () => {
+      const { applyStandardizedNamespace } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  A-->B\n  C-->D';
+      const result = applyStandardizedNamespace(input, 'MyModule');
+      expect(result).toContain('MyModule_A');
+      expect(result).toContain('MyModule_B');
+    });
+
+    it('should preserve Mermaid keywords', async () => {
+      const { applyStandardizedNamespace } = await import('../../src/core/architecture-generator');
+      const input = 'graph LR\n  subgraph A\n  end\n  classDef style';
+      const result = applyStandardizedNamespace(input, 'MyModule');
+      expect(result).toContain('subgraph A'); // Not MyModule_subgraph
+      expect(result).toContain('classDef'); // Not MyModule_classDef
+    });
+  });
+});

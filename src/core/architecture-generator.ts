@@ -7,7 +7,14 @@ import * as fs from 'fs/promises';
 export type ProjectType = 'frontend' | 'non-frontend';
 
 // 导出项目类型和检测函数
-export { detectProjectType, generateLayer1Diagram, generateCallGraphDiagram };
+export {
+  detectProjectType,
+  generateLayer1Diagram,
+  generateCallGraphDiagram,
+  validateMermaidSyntax,
+  applyStandardizedNamespace,
+  applyMermaidStandards
+};
 
 // 图层类型
 export type LayerType = 'layer1' | 'layer2' | 'layer3' | 'callgraph';
@@ -528,4 +535,138 @@ async function generateCallGraphDiagram(projectPath: string, dbPath: string): Pr
 
   // 多图情况：简化处理，返回第一张图
   return generateSingleCallGraphDiagram(chunks[0]);
+}
+
+/**
+ * Mermaid 语法验证
+ */
+function validateMermaidSyntax(mermaid: string): void {
+  const errors: string[] = [];
+
+  // 检查基本语法错误
+  if (!mermaid.startsWith('graph LR') && !mermaid.startsWith('graph TD') && !mermaid.startsWith('graph RL')) {
+    errors.push('Mermaid diagram must start with graph direction (LR/TD/RL)');
+  }
+
+  // 检查未闭合的引号
+  const quoteCount = (mermaid.match(/"/g) || []).length;
+  if (quoteCount % 2 !== 0) {
+    errors.push('Unclosed quotes in Mermaid diagram');
+  }
+
+  // 检查 subgraph 配对
+  const subgraphCount = (mermaid.match(/subgraph/g) || []).length;
+  const endCount = (mermaid.match(/\bend\b/g) || []).length;
+  if (subgraphCount !== endCount) {
+    errors.push('Mismatched subgraph/end pairs');
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Mermaid syntax validation failed:\n${errors.join('\n')}`);
+  }
+}
+
+/**
+ * 应用标准化命名空间
+ */
+function applyStandardizedNamespace(mermaid: string, prefix: string): string {
+  const keywords = new Set(['graph', 'subgraph', 'end', 'classDef', 'class', 'style', 'linkStyle', 'LR', 'TD', 'RL', 'fill', 'stroke']);
+
+  // 分割行进行处理
+  const lines = mermaid.split('\n');
+  const processedLines = lines.map(line => {
+    // 跳过空行和样式定义行
+    if (!line.trim() || line.includes('classDef') || line.includes('fill:') || line.includes('stroke:')) {
+      return line;
+    }
+
+    // 特殊处理 subgraph 行：不前缀化 subgraph 后面的名称
+    if (line.trim().startsWith('subgraph ')) {
+      return line; // 保持 subgraph 行不变
+    }
+
+    // 处理每一行，替换节点ID
+    return line.replace(/\b([A-Za-z_]\w*)\b/g, (match) => {
+      // 跳过关键词
+      if (keywords.has(match)) return match;
+      // 跳过已经前缀的
+      if (match.startsWith(`${prefix}_`)) return match;
+      // 跳过纯数字
+      if (/^\d+$/.test(match)) return match;
+      // 添加前缀
+      return `${prefix}_${match}`;
+    });
+  });
+
+  return processedLines.join('\n');
+}
+
+/**
+ * 应用颜色编码（前端样式）
+ */
+function applyFrontendColorCoding(mermaid: string): string {
+  let result = mermaid;
+
+  // 确保样式定义存在
+  if (!result.includes('classDef')) {
+    const styles = [
+      '  classDef routeStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px',
+      '  classDef pageStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px',
+      '  classDef componentStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px',
+      '  classDef stateStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px',
+      '  classDef apiStyle fill:#ffebee,stroke:#b71c1c,stroke-width:2px'
+    ];
+
+    const lines = result.split('\n');
+    lines.splice(1, 0, ...styles);
+    result = lines.join('\n');
+  }
+
+  return result;
+}
+
+/**
+ * 应用颜色编码（非前端样式）
+ */
+function applyNonFrontendColorCoding(mermaid: string): string {
+  let result = mermaid;
+
+  if (!result.includes('classDef')) {
+    const styles = [
+      '  classDef controllerStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px',
+      '  classDef serviceStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px',
+      '  classDef databaseStyle fill:#fffde7,stroke:#f9a825,stroke-width:2px',
+      '  classDef utilityStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px'
+    ];
+
+    const lines = result.split('\n');
+    lines.splice(1, 0, ...styles);
+    result = lines.join('\n');
+  }
+
+  return result;
+}
+
+/**
+ * 应用 Mermaid 规范
+ */
+function applyMermaidStandards(
+  mermaid: string,
+  projectType: ProjectType,
+  namespacePrefix: string = 'Project'
+): string {
+  let normalized = mermaid;
+
+  // 1. 应用命名空间标准化
+  normalized = applyStandardizedNamespace(normalized, namespacePrefix);
+
+  // 2. 应用颜色编码
+  normalized = projectType === 'frontend'
+    ? applyFrontendColorCoding(normalized)
+    : applyNonFrontendColorCoding(normalized);
+
+  // 3. 验证 Mermaid 语法
+  validateMermaidSyntax(normalized);
+
+  return normalized;
 }
