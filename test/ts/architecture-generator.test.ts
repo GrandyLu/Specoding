@@ -81,20 +81,27 @@ describe('Architecture Generator - Layer 1 Routes', () => {
       expect(mermaid).toContain('home');
     });
 
-    it('should chunk large route sets', async () => {
-      // Mock multiple files with 25+ routes total
-      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
+    it('should chunk large route sets with 18-node limit', async () => {
+      // Mock 25 routes (should trigger chunking: 18 + 7)
       const routes = Array.from({ length: 25 }, (_, i) => ({
         path: `/route${i}`,
         component: `Component${i}`
       }));
 
+      vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
       const routeContent = `export const routes = ${JSON.stringify(routes)};`;
       vi.spyOn(fs, 'readFile').mockResolvedValue(routeContent);
 
       const { generateLayer1Diagram } = await import('../../src/core/architecture-generator');
       const mermaid = await generateLayer1Diagram('/test');
-      expect(mermaid).toContain('subgraph'); // Should use subgraph for chunking
+
+      // Should use subgraph for chunking
+      expect(mermaid).toContain('subgraph');
+      // Should have multiple modules (25 routes / 18 per chunk = 2 modules)
+      expect(mermaid.match(/subgraph/g)?.length).toBeGreaterThan(1);
+      // Each subgraph should have styled nodes
+      expect(mermaid).toContain(':::routeStyle');
+      expect(mermaid).toContain(':::pageStyle');
     });
   });
 });

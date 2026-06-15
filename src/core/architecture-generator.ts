@@ -326,6 +326,10 @@ function generateSingleLayer1Diagram(routes: RouteMapping[]): string {
 function generateMultiLayer1Diagram(chunks: RouteMapping[][]): string {
   let mermaid = 'graph LR\n\n';
 
+  // 添加样式定义（必须在 subgraph 之前）
+  mermaid += '  classDef routeStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px;\n';
+  mermaid += '  classDef pageStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;\n\n';
+
   chunks.forEach((chunk, chunkIndex) => {
     mermaid += `  subgraph Module_${chunkIndex}\n`;
 
@@ -340,10 +344,6 @@ function generateMultiLayer1Diagram(chunks: RouteMapping[][]): string {
 
     mermaid += '  end\n\n';
   });
-
-  // 添加样式定义
-  mermaid += '  classDef routeStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px;\n';
-  mermaid += '  classDef pageStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;\n';
 
   return mermaid;
 }
