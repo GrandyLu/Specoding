@@ -364,7 +364,7 @@ else
     echo '```'
   } >> "$OUTPUT_FILE"
 fi
-append_command_section "Index Output" codegraph index "$PROJECT_PATH"
+# Note: codegraph init in the latest version includes automatic index building
 append_command_section "Index Status" codegraph status "$PROJECT_PATH"
 append_command_section "Indexed File Structure" codegraph files
 

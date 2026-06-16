@@ -28,16 +28,19 @@ fi
 
 ### 1. 生成 CodeGraph 上下文
 
-先检查 CodeGraph CLI：
+**注意**：CodeGraph 是必需依赖。本扫描依赖 CodeGraph CLI 输出。如果 CodeGraph 未安装，脚本会失败并显示错误信息。
+
+为确保 CodeGraph 可用，请先运行 `comet init`，或手动安装：
+
+```bash
+npm install -g codegraph@latest
+```
+
+然后验证安装：
 
 ```bash
 command -v codegraph
 ```
-
-如果命令不存在，**必须使用 AskUserQuestion 工具暂停并询问用户是否安装 CodeGraph CLI**。不得直接安装，也不得只输出文字后继续。
-
-- 用户同意：运行 `npm install -g codegraph@latest`，然后再次执行 `command -v codegraph` 验证
-- 用户拒绝：停止 `/comet-scan`，说明无法继续，因为 scan 必须依赖 CodeGraph 产物
 
 CodeGraph 可用后，在项目根目录运行：
 
@@ -45,7 +48,7 @@ CodeGraph 可用后，在项目根目录运行：
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" scan
 ```
 
-该脚本会先执行 `codegraph index`，再把 CodeGraph 的 `status`、`files`、`query`、`callers`、`callees`、`impact` 等产物写入：
+该脚本会执行 `codegraph init`（最新版 CodeGraph 中会自动构建索引），再把 CodeGraph 的 `status`、`files`、`query`、`callers`、`callees`、`impact` 等产物写入：
 
 ```text
 $COMET_CODEGRAPH_CONTEXT_FILE

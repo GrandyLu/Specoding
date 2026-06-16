@@ -19,6 +19,7 @@ type InitOptions = {
   json?: boolean;
   scope?: InstallScope;
   language?: string;
+  skipViz?: boolean;
 };
 
 type InstallStatus = 'installed' | 'skipped' | 'failed';
@@ -203,6 +204,35 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
   log(`\n  Installing CodeGraph dependency`);
   const codegraphStatus: CodeGraphInstallStatus = await installCodeGraph(projectPath);
   log(`  CodeGraph: ${codegraphStatus}`);
+
+  // Trigger architecture diagram generation
+  if (codegraphStatus !== 'failed' && !options.skipViz) {
+    try {
+      const { generateArchitectureDiagram } = await import('../core/architecture-generator.js');
+      const result = await generateArchitectureDiagram(
+        projectPath,
+        !options.yes,  // interactive mode: false when --yes is set
+        '.codegraph/architecture.mmd'
+      );
+
+      if (result.success) {
+        const layerNames = result.layers.map(l => {
+          const names = { layer1: 'Routes', layer2: 'Components', layer3: 'Shared', callgraph: 'CallGraph' };
+          return names[l as keyof typeof names] || l;
+        }).join(', ');
+
+        log(`  Architecture: generated (${layerNames}, ${result.nodeCount} nodes)`);
+      } else {
+        log(`  Architecture: generation failed (but CodeGraph init succeeded)`);
+        if (result.errors.length > 0) {
+          result.errors.forEach(err => console.warn(`    Warning: ${err}`));
+        }
+      }
+    } catch (error) {
+      console.warn(`  Architecture: generation error - ${(error as Error).message}`);
+      // Don't interrupt init flow, graceful degradation
+    }
+  }
 
   const selectedPlatformIds = await selectPlatforms(detected, options);
   if (selectedPlatformIds.length === 0) {

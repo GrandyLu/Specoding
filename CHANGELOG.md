@@ -2,6 +2,41 @@
 
 All notable changes to @rpamis/comet will be documented in this file.
 
+## What's Changed [0.3.8] - 2026-06-15
+
+### Added
+
+- **CodeGraph 架构可视化**: 自动生成 Mermaid 架构图，支持前端三层架构（路由、组件树、公共依赖）和非前端调用关系图
+- **项目类型检测**: 混合检测策略（package.json + 目录结构）自动识别前端/非前端项目
+- **智能分组**: 路由和调用关系图自动按模块分组，单图节点数控制在 18 个以内
+- **Mermaid 规范化**: 自动应用命名空间标准化、颜色编码和语法验证
+- **优雅降级**: 架构图生成失败不影响 CodeGraph init 成功
+- **--skip-viz 选项**: 支持跳过架构图生成（`comet init --skip-viz`）
+
+### Changed
+
+- **comet init**: 在 CodeGraph 安装成功后自动触发架构图生成
+- **错误处理**: 改进错误输出，架构图生成错误只输出警告不中断流程
+
+### Tests
+
+- 添加架构图生成的单元测试、集成测试和端到端测试
+- 测试覆盖项目类型检测、Mermaid 规范化、错误处理等核心功能
+
+## What's Changed [0.3.7] - 2026-06-10
+
+### Fixed
+
+- **CodeGraph dependency documentation**: Removed inconsistent `AskUserQuestion` flow from `/comet-scan` skill documentation. The skill now correctly states that CodeGraph is installed via `comet init` and scripts will fail with clear error messages if CodeGraph is unavailable.
+- **CodeGraph init/index optimization**: Updated `/comet-scan` skill and `comet-codegraph-context.sh` script to reflect that latest CodeGraph's `codegraph init` includes automatic index building, removing redundant `codegraph index` invocation.
+- **Unified dependency handling**: Aligned CodeGraph, OpenSpec, and Superpowers dependency documentation across all skill files, ensuring consistent user guidance.
+
+### Changed
+
+- **Comet scan workflow**: Updated `/comet-scan` to clarify that `codegraph init` (not `codegraph index`) is the primary command, as it now automatically builds the index in the latest CodeGraph version.
+
+## What's Changed [0.3.6] - 2026-06-10
+
 ## What's Changed [0.3.6] - 2026-06-10
 
 ### Added

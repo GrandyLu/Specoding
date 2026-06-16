@@ -70,6 +70,35 @@ Long-term Skill users know these capabilities can be freely combined, but exactl
 
 - **How to turn shell scripts into Agent workflow infrastructure** — Comet's scripts need to work across macOS, Linux, and Windows Git Bash while handling hashes, YAML fields, state machines, and archive flows. It shows how to move fragile workflow control out of scattered Prompt text and into testable, reusable tools.
 
+## CodeGraph 架构可视化
+
+Comet 自动为您的项目生成 Mermaid 架构图：
+
+- **前端项目**: 三层架构图（全局路由 → 组件树 → 公共依赖）
+- **非前端项目**: 调用关系图（控制器 → 服务层 → 数据层）
+
+架构图保存在 `.codegraph/architecture.mmd`，可在支持 Mermaid 的 Markdown 查看器中直接查看。
+
+### 使用方式
+
+```bash
+# 初始化项目（自动生成架构图）
+comet init
+
+# 跳过架构图生成
+comet init --skip-viz
+
+# 非交互模式（只生成 Layer 1）
+comet init --yes
+```
+
+### 查看架构图
+
+生成的 `.codegraph/architecture.mmd` 可以在以下平台查看：
+- GitHub / GitLab（原生支持 Mermaid）
+- [Mermaid Live Editor](https://mermaid.live)
+- VS Code（安装 Mermaid 插件）
+
 ## Install
 
 Requirements:
