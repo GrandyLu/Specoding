@@ -98,7 +98,10 @@ Design Doc frontmatter must be minimal, containing only:
 comet_change: <change-name>
 role: technical-design
 canonical_spec: openspec
+canonical_spec_hash: <handoff_hash>
 ---
+
+`canonical_spec_hash` must equal the current `.comet.yaml` `handoff_hash`. If Step 1c writes back OpenSpec delta specs, rerun `comet-handoff.sh` to update the hash before creating or updating the Design Doc frontmatter.
 
 Skip redundant context exploration, proceed directly to design questions.
 ```
@@ -128,27 +131,28 @@ Only after the user explicitly confirms, proceed to Step 2. If the user requests
 
 ### 2. Update Comet State
 
-First record the design_doc path. If Step 1c wrote back delta spec (added or modified `specs/*/spec.md`), must regenerate handoff to update hash:
+If Step 1c wrote back delta spec (added or modified `specs/*/spec.md`), first regenerate handoff to update hash. Then confirm the Design Doc frontmatter `canonical_spec_hash` equals the latest `handoff_hash` before recording the design_doc path:
 
 ```bash
-# Record design_doc path
-"$COMET_BASH" "$COMET_STATE" set <name> design_doc docs/superpowers/specs/YYYY-MM-DD-topic-design.md
-
 # If delta spec changes exist, regenerate handoff (update hash)
 "$COMET_BASH" "$COMET_HANDOFF" <change-name> design --write
+
+# Record design_doc path
+"$COMET_BASH" "$COMET_STATE" set <name> design_doc docs/superpowers/specs/YYYY-MM-DD-topic-design.md
 
 # Auto-transition to next phase
 "$COMET_BASH" "$COMET_GUARD" <change-name> design --apply
 ```
 
-If there are no delta spec changes, skip the handoff regeneration step. The state file updates automatically; no manual editing of other fields needed.
+If there are no delta spec changes, skip the handoff regeneration step, but the Design Doc still must record the current `handoff_hash`. The state file updates automatically; no manual editing of other fields needed.
 
 ## Exit Conditions
 
 - Design Doc created and saved
-- Design Doc frontmatter contains `comet_change`, `role: technical-design`, `canonical_spec: openspec`
+- Design Doc frontmatter contains `comet_change`, `role: technical-design`, `canonical_spec: openspec`, `canonical_spec_hash`
 - `handoff_context` and `handoff_hash` written to `.comet.yaml` (enforced by guard)
 - `handoff_hash` matches current OpenSpec open phase artifacts (enforced by guard)
+- Design Doc `canonical_spec_hash` matches the current OpenSpec handoff hash, preventing silent drift between OpenSpec and the Superpowers Design Doc (enforced by guard)
 - `design-context.md` must be script-generated and contain source path, mode, sha256 traceability markers (enforced by guard)
 - If new capabilities or supplementary acceptance scenarios exist, OpenSpec delta spec has been created/updated
 - `design_doc` written to `.comet.yaml`

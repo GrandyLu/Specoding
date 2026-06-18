@@ -15,11 +15,17 @@ All notable changes to @rpamis/comet will be documented in this file.
 
 ### Changed
 
+- **OpenSpec/Superpowers handoff consistency**: Design Docs now record the OpenSpec handoff hash they were created from, and guards block stale Superpowers design docs when upstream OpenSpec artifacts change.
 - **comet init**: 在 CodeGraph 安装成功后自动触发架构图生成
 - **错误处理**: 改进错误输出，架构图生成错误只输出警告不中断流程
 
+### Fixed
+
+- **JSON init output**: Moved architecture visualization progress messages to stderr so `comet init --json` remains parseable while still showing diagnostics.
+
 ### Tests
 
+- **Handoff drift regression**: Added shell-script coverage that build guard blocks when OpenSpec artifacts differ from the hash recorded in the Superpowers Design Doc.
 - 添加架构图生成的单元测试、集成测试和端到端测试
 - 测试覆盖项目类型检测、Mermaid 规范化、错误处理等核心功能
 

@@ -577,10 +577,13 @@ describe('skills', () => {
         expect(design).toContain('context_skills');
         expect(design).not.toContain('context_skills.components');
         expect(design).toContain('test-cases.md');
+        expect(design).toContain('canonical_spec_hash');
+        expect(design).toContain('<handoff_hash>');
         expect(build).not.toContain('comet-component-library');
         expect(build).toContain('context_skills');
         expect(build).not.toContain('context_skills.components');
         expect(build).toContain('Test Cases: openspec/changes/<name>/test-cases.md');
+        expect(build).toContain('canonical_spec_hash');
         expect(verify).toContain('openspec/changes/<name>/test-cases.md');
       }
     });

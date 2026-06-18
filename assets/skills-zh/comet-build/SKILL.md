@@ -30,6 +30,8 @@ fi
 
 **幂等性**：build 阶段所有操作可安全重复执行。读取 `.comet.yaml` 的 `phase` 字段确认仍在 build 阶段，读取 plan 文件头的 `base-ref`，再读取 tasks.md 找到第一个未勾选任务继续执行。已提交的任务不得重复提交。
 
+**OpenSpec → Superpowers 一致性**：进入和离开 build 时，guard 会检查 Design Doc frontmatter 的 `canonical_spec_hash` 是否仍等于当前 OpenSpec handoff hash。若 OpenSpec 产物在 Design Doc 生成后发生变化，必须重新运行 `comet-handoff.sh` 并刷新 Design Doc 后再继续，不能基于旧 Superpowers 设计继续计划或实现。
+
 ### 1. 制定计划
 
 先生成计划阶段 CodeGraph 上下文：

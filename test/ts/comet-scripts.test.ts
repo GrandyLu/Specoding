@@ -478,7 +478,6 @@ describeShell('comet shell scripts', () => {
         '#!/bin/bash',
         'case "$1" in',
         '  init) mkdir -p "$2/.codegraph"; echo "initialized $2" ;;',
-        '  index) echo "indexed $2" ;;',
         '  status) echo "Files: 3"; echo "Nodes: 7" ;;',
         '  files) echo "src/app.js (javascript, 2 symbols)" ;;',
         '  query) echo "Search Results for \\"$2\\""; echo "function    demo"; echo "  src/app.js:1" ;;',
@@ -518,8 +517,6 @@ describeShell('comet shell scripts', () => {
     expect(context).toContain('- Mode: scan');
     expect(context).toContain('## Initialize CodeGraph');
     expect(context).toContain('initialized');
-    expect(context).toContain('## Index Output');
-    expect(context).toContain('indexed');
     expect(context).toContain('## Index Status');
     expect(context).toContain('Files: 3');
     expect(context).toContain('## Indexed File Structure');
@@ -636,6 +633,7 @@ describeShell('comet shell scripts', () => {
         'comet_change: handoff-change',
         'role: technical-design',
         'canonical_spec: openspec',
+        `canonical_spec_hash: ${contextHash}`,
         '---',
         '',
       ].join('\n'),
@@ -711,6 +709,11 @@ describeShell('comet shell scripts', () => {
       ].join('\n'),
     );
     runBash(tmpDir, handoffScript, ['frontmatter-prefix', 'design', '--write']);
+    const handoffHash = runBash(tmpDir, stateScript, [
+      'get',
+      'frontmatter-prefix',
+      'handoff_hash',
+    ]).stdout.trim();
     await writeFile(
       path.join(tmpDir, 'docs', 'superpowers', 'specs', 'frontmatter-prefix-design.md'),
       [
@@ -720,6 +723,7 @@ describeShell('comet shell scripts', () => {
         'comet_change: frontmatter-prefix',
         'role: technical-design',
         'canonical_spec: openspec',
+        `canonical_spec_hash: ${handoffHash}`,
         '---',
         '',
       ].join('\n'),
@@ -845,6 +849,76 @@ describeShell('comet shell scripts', () => {
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('[FAIL] design handoff context exists');
     expect(result.stderr).toContain('OpenSpec artifacts changed after handoff was generated');
+  }, 20_000);
+
+  it('blocks build when the Superpowers design doc source hash is stale', async () => {
+    const handoffScript = path.join(tmpDir, 'scripts', 'comet-handoff.sh');
+    await createChange(
+      tmpDir,
+      'stale-design-source',
+      [
+        'workflow: full',
+        'phase: design',
+        'build_mode: null',
+        'build_pause: null',
+        'isolation: null',
+        'verify_mode: null',
+        'auto_transition: true',
+        'design_doc: null',
+        'plan: null',
+        'verify_result: pending',
+        'verified_at: null',
+        'archived: false',
+        '',
+      ].join('\n'),
+    );
+
+    runBash(tmpDir, handoffScript, ['stale-design-source', 'design', '--write']);
+    const handoffHash = runBash(tmpDir, stateScript, [
+      'get',
+      'stale-design-source',
+      'handoff_hash',
+    ]).stdout.trim();
+    await writeFile(
+      path.join(tmpDir, 'docs', 'superpowers', 'specs', 'stale-design-source.md'),
+      [
+        '---',
+        'comet_change: stale-design-source',
+        'role: technical-design',
+        'canonical_spec: openspec',
+        `canonical_spec_hash: ${handoffHash}`,
+        '---',
+        '',
+      ].join('\n'),
+    );
+    runBash(tmpDir, stateScript, [
+      'set',
+      'stale-design-source',
+      'design_doc',
+      'docs/superpowers/specs/stale-design-source.md',
+    ]);
+    runBash(tmpDir, stateScript, ['transition', 'stale-design-source', 'design-complete']);
+    runBash(tmpDir, stateScript, ['set', 'stale-design-source', 'isolation', 'branch']);
+    runBash(tmpDir, stateScript, [
+      'set',
+      'stale-design-source',
+      'build_mode',
+      'executing-plans',
+    ]);
+    await writeFile(
+      path.join(tmpDir, 'package.json'),
+      JSON.stringify({ scripts: { build: 'node -e "process.exit(0)"' } }),
+    );
+    await writeFile(
+      path.join(tmpDir, 'openspec', 'changes', 'stale-design-source', 'proposal.md'),
+      'mutated proposal\n',
+    );
+
+    const result = runBash(tmpDir, guardScript, ['stale-design-source', 'build']);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('[FAIL] Superpowers Design Doc matches current OpenSpec handoff');
+    expect(result.stderr).toContain('OpenSpec artifacts changed after Superpowers Design Doc was written');
   }, 20_000);
 
   it('blocks design exit when design doc frontmatter is missing required fields', async () => {

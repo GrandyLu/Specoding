@@ -30,6 +30,8 @@ Proceed to Step 1 after verification passes. The script outputs specific failure
 
 **Idempotency**: All build phase operations can be safely re-executed. Read `.comet.yaml` `phase` field to confirm still in build, read plan header `base-ref`, then read tasks.md to find the first unchecked task. Already-committed tasks must not be re-committed.
 
+**OpenSpec → Superpowers consistency**: On build entry and exit, guard checks that the Design Doc frontmatter `canonical_spec_hash` still equals the current OpenSpec handoff hash. If OpenSpec artifacts changed after the Design Doc was generated, rerun `comet-handoff.sh` and refresh the Design Doc before continuing; do not plan or implement from a stale Superpowers design.
+
 ### 1. Create Plan
 
 First generate plan-phase CodeGraph context:

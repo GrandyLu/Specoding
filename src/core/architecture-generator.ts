@@ -744,7 +744,7 @@ async function generateArchitectureDiagram(
 
   // 检查是否跳过可视化
   if (process.env.COMET_SKIP_VIZ === 'true') {
-    console.log('  Skipping architecture visualization (COMET_SKIP_VIZ=true)');
+    console.error('  Skipping architecture visualization (COMET_SKIP_VIZ=true)');
     return {
       success: true,
       layers: [],
@@ -757,7 +757,7 @@ async function generateArchitectureDiagram(
   try {
     // 检测项目类型
     const projectType = await detectProjectType(projectPath);
-    console.log(`  Detected project type: ${projectType}`);
+    console.error(`  Detected project type: ${projectType}`);
 
     // 执行生成
     if (interactive) {
