@@ -1,103 +1,47 @@
 <p align="center">
-  <a href="https://github.com/rpamis/comet/blob/master/img/title-log.png">
-    <picture>
-      <source srcset="https://github.com/rpamis/comet/blob/master/img/title-log.png">
-      <img src="https://github.com/rpamis/comet/blob/master/img/title-log.png" alt="Comet logo">
-    </picture>
-  </a>
-</p>
-
-<p align="center">
   <a href="https://github.com/rpamis/comet/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/rpamis/comet/ci.yml?branch=master&style=flat-square&label=CI" /></a>
-  <a href="https://deepwiki.com/rpamis/comet"><img alt="DeepWiki" src="https://img.shields.io/badge/DeepWiki-rpamis%2Fcomet-blue?style=flat-square" /></a>
   <a href="https://www.npmjs.com/package/@rpamis/comet"><img alt="npm version" src="https://img.shields.io/npm/v/@rpamis/comet?style=flat-square" /></a>
-  <a href="https://www.npmjs.com/package/@rpamis/comet"><img alt="npm download count" src="https://img.shields.io/npm/dm/@rpamis/comet?style=flat-square&label=Downloads/mo" /></a>
-  <a href="https://www.npmjs.com/package/@rpamis/comet"><img alt="npm weekly download count" src="https://img.shields.io/npm/dw/@rpamis/comet?style=flat-square&label=Downloads/wk" /></a>
   <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
 </p>
 
 # @rpamis/comet
 
-```
- ██████╗ ██████╗ ███╗   ███╗███████╗████████╗
-██╔════╝██╔═══██╗████╗ ████║██╔════╝╚══██╔══╝
-██║     ██║   ██║██╔████╔██║█████╗     ██║
-██║     ██║   ██║██║╚██╔╝██║██╔══╝     ██║
-╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗   ██║
- ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝
-```
-
 > 中文版：[README-zh.md](README-zh.md)
-> [Bilibili video](https://www.bilibili.com/video/BV1y4Gi6CEo1/?spm_id_from=333.1387.homepage.video_card.click&vd_source=d22726fe6b108647dbebf1c5d8817377)
 
-**OpenSpec + Superpowers dual-star development workflow** — one command from idea to archive.
+**A script-backed workflow harness for AI coding agents** — OpenSpec requirements, Superpowers execution discipline, CodeGraph evidence, and Comet state automation in one loop.
 
-OpenSpec handles **WHAT** (outlines, proposals, spec lifecycle, archiving).
+OpenSpec handles **WHAT**: proposals, delta specs, lifecycle metadata, and archive sync.
 
-Superpowers handles **HOW** (technical design, planning, execution, wrap-up).
+Superpowers handles **HOW**: brainstorming, design docs, implementation plans, TDD, code review, and finish-up discipline.
 
-Comet chains both into a five-phase automated pipeline.
+CodeGraph handles **WHERE**: code indexing, relationship analysis, impact hints, targeted source excerpts, and architecture visualization.
 
-## Why Comet
+Comet is the harness around them: it installs the skills, wires the scripts, records phase state, generates code evidence, and lets `/comet` resume the right step instead of asking the agent to reconstruct the project from scratch.
 
-OpenSpec excels at managing requirements, creating proposals, managing Spec lifecycles, and archiving, but its proposals and tasks lack the detail of Superpowers brainstorming.
+## What Comet Is
 
-Superpowers generates Spec documents after brainstorming, but these documents typically lack stateful design — after completing requirements, Specs only have tasks checked off in the document, and Agents even forget to check them off. This causes the Agent to re-examine documents and project code to verify on resumption, wasting many tokens.
+Comet is a workflow harness, not a single prompt or a component library. It coordinates four layers:
 
-**Comet combines the strengths of both**, integrating the core workflow into 5 phases
+| Layer | Role | Main artifacts |
+| ----- | ---- | -------------- |
+| OpenSpec | Requirements and spec lifecycle | `openspec/changes/<name>/proposal.md`, `design.md`, `tasks.md`, `specs/` |
+| Superpowers | Engineering method and execution discipline | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
+| CodeGraph | CodeGraph evidence layer for local code understanding | `.codegraph/codegraph.db`, `.codegraph/architecture.mmd`, `openspec/.comet/codegraph-context.md` |
+| Comet scripts | State machine, guards, handoff, archive, and CodeGraph context export | `.comet.yaml`, `comet-*.sh` |
 
-The main entry `/comet` supports current Spec state detection, suitable for long tasks — after closing your AI coding session midway, just `/comet` and Comet will automatically read the active Spec (lists multiple for selection), dynamically identify which phase is currently executing, and continue.
+The main entry `/comet` detects the active OpenSpec change, reads `.comet.yaml`, identifies the current phase, refreshes the needed code evidence, and dispatches to the correct phase skill. That makes Comet useful for long-running work: after closing an AI coding session midway, running `/comet` can resume from the recorded phase instead of relying on memory.
 
-At the same time, Comet provides full Spec lifecycle management. During execution, it links OpenSpec change/spec artifacts with Superpowers design and planning documents, then automates handoff, state updates, validation, and archive sync so users do not have to repeatedly remind the Agent to keep documents synchronized and connected.
+## How It Works
 
-## What You'll Learn
+Comet keeps requirements, execution plans, and local code evidence connected:
 
-Many excellent Skill projects exist in the current Skill market, but they generally have preference issues — users may only like some features. For example, when using both OpenSpec and Superpowers, one might only use OpenSpec's Spec management capabilities, but prefer Superpowers' TDD-driven approach for coding.
+1. `/comet-open` creates or resumes an OpenSpec change and records Comet workflow state.
+2. `/comet-design` turns the OpenSpec artifacts into a deeper Superpowers design doc, using CodeGraph context as code evidence.
+3. `/comet-build` creates an implementation plan, asks the user to choose isolation and execution mode, then executes against the plan.
+4. `/comet-verify` requires traceable verification evidence before the phase can pass.
+5. `/comet-archive` syncs delta specs back to main specs, marks linked docs, archives the change, and refreshes the CodeGraph index.
 
-Long-term Skill users know these capabilities can be freely combined, but exactly how to do so still requires real practice. The Comet project can serve as a reference:
-
-- **How to reliably trigger nested Skills** — Not letting the Agent rely on document descriptions to perform "look-alike Skill trigger" operations (like writing files based on Skill descriptions), but truly triggering Skills (key feature: Skill trigger prints on CC). Comet triggers many capabilities from OpenSpec and Superpowers. How is this Prompt written?
-
-- **How to make combined Skills flow automatically across phases** — Not relying on manual intervention. Comet's 5-phase flow can automatically trigger Skills for the core process except for necessary user choices, while the state machine also protects state transition reliability.
-
-- **How to turn the Spec lifecycle into a resumable workflow** — Comet links OpenSpec change/spec artifacts with Superpowers design and planning documents, then records phase, execution mode, verification results, and archive status in `.comet.yaml`, so the Agent can resume after interruption instead of rereading documents and guessing progress.
-
-- **How to turn document synchronization from "user reminders" into automation** — Comet puts handoff, state updates, validation, and archive sync into scripted flows, reducing repeated prompts like "remember to update the design doc", "remember to sync the spec", and "remember to archive the change".
-
-- **How to design guard conditions that Agents can execute** — Comet does not simply trust the Agent saying "done" at phase exits. Scripts such as `comet-guard.sh`, `comet-yaml-validate.sh`, and `comet-state.sh` check tasks, state fields, verification evidence, and archive conditions before allowing the workflow to advance.
-
-- **How to distribute and install Skills across platforms** — Comet supports multiple AI coding platforms, project/global installation, Chinese/English Skill choices, and platform-specific directory differences such as Antigravity using different project-level and global paths. It can be a reference for CLI installers and Skill package structure.
-
-- **How to turn shell scripts into Agent workflow infrastructure** — Comet's scripts need to work across macOS, Linux, and Windows Git Bash while handling hashes, YAML fields, state machines, and archive flows. It shows how to move fragile workflow control out of scattered Prompt text and into testable, reusable tools.
-
-## CodeGraph 架构可视化
-
-Comet 自动为您的项目生成 Mermaid 架构图：
-
-- **前端项目**: 三层架构图（全局路由 → 组件树 → 公共依赖）
-- **非前端项目**: 调用关系图（控制器 → 服务层 → 数据层）
-
-架构图保存在 `.codegraph/architecture.mmd`，可在支持 Mermaid 的 Markdown 查看器中直接查看。
-
-### 使用方式
-
-```bash
-# 初始化项目（自动生成架构图）
-comet init
-
-# 跳过架构图生成
-comet init --skip-viz
-
-# 非交互模式（只生成 Layer 1）
-comet init --yes
-```
-
-### 查看架构图
-
-生成的 `.codegraph/architecture.mmd` 可以在以下平台查看：
-- GitHub / GitLab（原生支持 Mermaid）
-- [Mermaid Live Editor](https://mermaid.live)
-- VS Code（安装 Mermaid 插件）
+Every code-aware phase uses `comet-codegraph-context.sh` to generate `COMET_CODEGRAPH_CONTEXT_FILE` (`openspec/.comet/codegraph-context.md` by default). CodeGraph context is the primary code evidence passed into OpenSpec and Superpowers: agents should prefer relationship analysis, impact output, affected tests, and targeted source excerpts before reading source files directly.
 
 ## Install
 
@@ -124,10 +68,20 @@ comet init
 1. Prompt you to select AI platforms (auto-detects existing configs)
 2. Choose install scope: project-level (current directory) or global (home directory)
 3. Select language for Comet skills: 中文 (default) or English
-4. Install [OpenSpec](https://github.com/Fission-AI/OpenSpec) skills
-5. Install [Superpowers](https://github.com/obra/superpowers) skills
-6. Deploy Comet skills (in your chosen language) to selected platforms
-7. Create `docs/superpowers/specs/` and `docs/superpowers/plans/` working directories for project-scope installs
+4. Install the CodeGraph CLI dependency and initialize code evidence support
+5. Generate `.codegraph/architecture.mmd` unless you pass `--skip-viz`
+6. Install [OpenSpec](https://github.com/Fission-AI/OpenSpec) skills
+7. Install [Superpowers](https://github.com/obra/superpowers) skills
+8. Deploy Comet skills (in your chosen language) to selected platforms
+9. Create `docs/superpowers/specs/` and `docs/superpowers/plans/` working directories for project-scope installs
+
+After initialization, start a change from your AI coding agent:
+
+```text
+/comet "your idea"
+```
+
+For an existing project, run `/comet-scan` to build CodeGraph context and let OpenSpec explore the current codebase before you start changing behavior.
 
 > [!TIP]
 > update version
@@ -142,15 +96,6 @@ For platforms that use the generic `skills` CLI directly, you can install the Co
 npx skills add rpamis/comet
 ```
 
-## Screenshots
-
-<p align="center">
-  <img src="https://github.com/rpamis/comet/blob/master/img/runner.png" alt="runner">
-</p>
-
-<p align="center">Auto-install OpenSpec & Superpowers, one-click dev environment setup</p>
-<p align="center">Multi-phase Skill entry, auto-detects current Spec stage, auto-triggers core flow, manual review at key nodes</p>
-
 ## Commands
 
 <details>
@@ -163,6 +108,7 @@ Initializes OpenSpec, Superpowers, and Comet skills for selected AI coding platf
 | `--yes`           | Non-interactive mode, auto-select detected platforms (or all if none detected) |
 | `--scope <scope>` | Install scope: `project` or `global`                                           |
 | `--language <lang>` | Skill language: `zh` (default) or `en`                                       |
+| `--skip-viz`      | Skip CodeGraph architecture visualization generation                           |
 | `--skip-existing` | Skip already installed components                                              |
 | `--overwrite`     | Overwrite already installed components                                         |
 | `--json`          | Output structured JSON                                                         |
@@ -271,6 +217,7 @@ After `comet init`, three groups of skills are installed to the selected platfor
 | Script                   | Purpose                                                                                               |
 | ------------------------ | ----------------------------------------------------------------------------------------------------- |
 | `comet-env.sh`           | Script discovery helper — exports bundled script paths such as `COMET_GUARD`, `COMET_STATE`, `COMET_HANDOFF`, and `COMET_ARCHIVE` |
+| `comet-codegraph-context.sh` | CodeGraph context exporter — writes `COMET_CODEGRAPH_CONTEXT_FILE` with status, structure, relationships, impact, affected tests, and targeted excerpts |
 | `comet-guard.sh`         | Phase transition guard — validates exit conditions, `--apply` auto-updates `.comet.yaml`              |
 | `comet-handoff.sh`       | Design handoff — generates deterministic context packages from OpenSpec artifacts with SHA256 tracing |
 | `comet-archive.sh`       | One-command archive — validates state, syncs specs, moves to archive, updates status                  |
@@ -300,6 +247,18 @@ context_skills:
 ```
 
 During `/comet-design` and `/comet-build`, Comet reads `context_skills` and asks the agent to load each configured skill before design or implementation. If no context skills are configured, the workflow continues, but agents must not claim compliance with project-specific guidance that was not provided.
+
+## CodeGraph Evidence
+
+CodeGraph is first-class in the Comet workflow:
+
+- `comet init` installs `codegraph@latest`, initializes CodeGraph support, and generates `.codegraph/architecture.mmd` by default.
+- `comet init --skip-viz` keeps the install flow but skips architecture diagram generation.
+- `/comet-scan` is for existing projects: it builds CodeGraph context, then asks OpenSpec explore to draft specs from confirmed code evidence.
+- `/comet-open`, `/comet-design`, `/comet-build`, `/comet-verify`, `/comet-hotfix`, and `/comet-tweak` generate phase-specific CodeGraph context before code-aware work.
+- `comet-codegraph-context.sh` writes `COMET_CODEGRAPH_CONTEXT_FILE`, defaulting to `openspec/.comet/codegraph-context.md`.
+
+The generated context includes CodeGraph index status, indexed file structure, symbol searches, callers/callees/impact relationships, affected tests when available, and targeted source excerpts. The goal is not to hide source code from the agent; it is to make code reading evidence-led and bounded.
 
 ## Workflow
 
@@ -347,6 +306,8 @@ Comet uses a decoupled state architecture with separate YAML files:
 | `.comet.yaml`    | Comet    | Workflow phase, execution mode, verification status |
 
 All states and execution phases are updated via scripts, and each phase verifies that tasks are truly complete before advancing. Compared to storing complex state rules only in Skill text, this script-backed state machine gives Comet more reliable phase transitions, correct YAML, and easier breakpoint recovery; agents can read the current Spec situation through Comet's built-in commands.
+
+`comet-state.sh` is the write interface for `.comet.yaml`; `comet-guard.sh` validates and advances phases; `comet-handoff.sh` records the design handoff package and hash; `comet-archive.sh` performs archive-time sync and then runs `codegraph sync`.
 
 <details>
 <summary>View key .comet.yaml fields</summary>
@@ -431,6 +392,7 @@ your-project/
 │   │   └── scripts/
 │   │       ├── comet-guard.sh       # Phase transition guard (--apply auto-updates state)
 │   │       ├── comet-env.sh         # Script discovery helper
+│   │       ├── comet-codegraph-context.sh # CodeGraph context exporter
 │   │       ├── comet-handoff.sh     # Design handoff (OpenSpec → Superpowers context tracing)
 │   │       ├── comet-archive.sh     # One-command archive automation
 │   │       ├── comet-yaml-validate.sh # Schema validator
@@ -446,8 +408,14 @@ your-project/
 │           ├── .comet.yaml          # Comet workflow state (decoupled)
 │           ├── proposal.md
 │           ├── design.md
+│           ├── test-cases.md        # Per-change verification matrix
 │           ├── specs/<capability>/spec.md
 │           └── tasks.md
+├── openspec/.comet/
+│   └── codegraph-context.md         # COMET_CODEGRAPH_CONTEXT_FILE
+├── .codegraph/
+│   ├── codegraph.db                 # CodeGraph index
+│   └── architecture.mmd             # Generated architecture diagram
 └── docs/superpowers/            # Superpowers — HOW
     ├── specs/                   # Design documents
     └── plans/                   # Implementation plans
@@ -459,34 +427,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, commit conventions
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
 
-## Roadmap
-
-Track our development progress and upcoming features on the [Comet Roadmap](https://github.com/orgs/rpamis/projects/1).
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=rpamis/comet&type=Date)](https://star-history.com/#rpamis/comet&Date)
-
-## Contributors
-
-<a href="https://github.com/rpamis/comet/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=rpamis/comet&columns=12&anon=1" />
-</a>
-
 ## License
 
 [MIT](LICENSE)
-
-## Community
-
-<p align="center">
-  <img src="https://github.com/rpamis/comet/blob/master/img/wechat.jpg" alt="WeChat Group" width="200" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://github.com/rpamis/comet/blob/master/img/qq.jpg" alt="QQ Group" width="200" />
-</p>
-
-<p align="center">WeChat Group &nbsp;&nbsp;|&nbsp;&nbsp; QQ Group</p>
-
-## Reference
-
-[LINUX DO - 新的理想型社区](https://linux.do/)

@@ -1,74 +1,47 @@
 <p align="center">
-  <a href="https://github.com/rpamis/comet/blob/master/img/title-log.png">
-    <picture>
-      <source srcset="https://github.com/rpamis/comet/blob/master/img/title-log.png">
-      <img src="https://github.com/rpamis/comet/blob/master/img/title-log.png" alt="Comet logo">
-    </picture>
-  </a>
-</p>
-
-<p align="center">
   <a href="https://github.com/rpamis/comet/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/rpamis/comet/ci.yml?branch=master&style=flat-square&label=CI" /></a>
-  <a href="https://deepwiki.com/rpamis/comet"><img alt="DeepWiki" src="https://img.shields.io/badge/DeepWiki-rpamis%2Fcomet-blue?style=flat-square" /></a>
   <a href="https://www.npmjs.com/package/@rpamis/comet"><img alt="npm version" src="https://img.shields.io/npm/v/@rpamis/comet?style=flat-square" /></a>
-  <a href="https://www.npmjs.com/package/@rpamis/comet"><img alt="npm download count" src="https://img.shields.io/npm/dm/@rpamis/comet?style=flat-square&label=Downloads/mo" /></a>
-  <a href="https://www.npmjs.com/package/@rpamis/comet"><img alt="npm weekly download count" src="https://img.shields.io/npm/dw/@rpamis/comet?style=flat-square&label=Downloads/wk" /></a>
   <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
 </p>
 
 # @rpamis/comet
 
-```
- ██████╗ ██████╗ ███╗   ███╗███████╗████████╗
-██╔════╝██╔═══██╗████╗ ████║██╔════╝╚══██╔══╝
-██║     ██║   ██║██╔████╔██║█████╗     ██║
-██║     ██║   ██║██║╚██╔╝██║██╔══╝     ██║
-╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗   ██║
- ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝
-```
-
 > English version: [README.md](README.md)
-> [Bilibili video](https://www.bilibili.com/video/BV1y4Gi6CEo1/?spm_id_from=333.1387.homepage.video_card.click&vd_source=d22726fe6b108647dbebf1c5d8817377)
 
-**OpenSpec + Superpowers 双星开发工作流** — 从创意到归档，一条命令。
+**面向 AI 编码 Agent 的脚本化工作流 harness** — 把 OpenSpec 需求、Superpowers 执行方法、CodeGraph 代码证据和 Comet 状态自动化串成一条闭环。
 
-OpenSpec 处理 **WHAT**（大纲、提案、spec 生命周期、归档）。
+OpenSpec 处理 **WHAT**：提案、delta spec、生命周期元数据和归档同步。
 
-Superpowers 处理 **HOW**（技术设计、规划、执行、收尾）。
+Superpowers 处理 **HOW**：头脑风暴、设计文档、实现计划、TDD、代码评审和收尾。
 
-Comet 将二者串联为五阶段自动化流水线。
+CodeGraph 处理 **WHERE**：代码索引、调用关系、影响面提示、定向源码摘录和架构图。
 
-## 为什么需要 Comet
+Comet 是包在它们外层的 harness：负责安装技能、连接脚本、记录阶段状态、生成代码证据，并让 `/comet` 能从正确步骤继续，而不是让 agent 每次重新理解整个项目。
 
-OpenSpec 擅长管理需求、做提案、管理 Spec 生命周期和归档，但使用过程中 OpenSpec 的提案和 Task 没有像 Superpowers 头脑风暴那样细致。
+## Comet 是什么
 
-Superpowers 在头脑风暴后会产出 Spec 文档，但这个文档通常没有进行状态化设计——做完需求之后 Spec 仅在文档上对 Task 打勾，甚至 Agent 还会忘记打勾，造成下一次断点开始时，Agent 需要重新查看文档和项目代码来核验，产生较多 Token 浪费。
+Comet 是一个工作流 harness，不是单个 prompt，也不是组件库。它协调四层能力：
 
-**Comet 合并了两者的强项**，将核心流程整合为 5 个阶段
+| 层 | 职责 | 主要产物 |
+| --- | --- | --- |
+| OpenSpec | 需求与 spec 生命周期 | `openspec/changes/<name>/proposal.md`、`design.md`、`tasks.md`、`specs/` |
+| Superpowers | 工程方法与执行纪律 | `docs/superpowers/specs/`、`docs/superpowers/plans/` |
+| CodeGraph | CodeGraph 证据层，用于理解本地代码 | `.codegraph/codegraph.db`、`.codegraph/architecture.mmd`、`openspec/.comet/codegraph-context.md` |
+| Comet 脚本 | 状态机、守护、交接、归档和 CodeGraph context 导出 | `.comet.yaml`、`comet-*.sh` |
 
-主入口 `/comet` 支持当前 Spec 状态检测，适用于长任务——中途关闭当前 AI 编码会话后，回来只需 `/comet`，Comet 会自动读取活跃的 Spec（多个则列出选择），动态识别当前执行到哪个阶段，继续往下执行。
+主入口 `/comet` 会检测活跃的 OpenSpec change，读取 `.comet.yaml`，识别当前阶段，刷新所需代码证据，再分派到正确的阶段 skill。它适合长任务：中途关闭 AI 编码会话后，再次运行 `/comet` 可以从记录的阶段继续，而不是依赖上下文记忆。
 
-同时，Comet具备Spec全生命周期管理能力，运行过程中能够将 OpenSpec 的 change/spec 制品与 Superpowers 的设计、计划文档进行关联，并自动完成交接、状态更新、校验和归档同步，把原本需要用户频繁提醒 Agent 维护文档同步和关联关系的操作自动化。
+## 工作原理
 
-## 你能学到什么
+Comet 会把需求、执行计划和本地代码证据连接起来：
 
-现有的 Skill 市场中有很多优秀的 Skill 项目，但普遍存在偏好性问题——用户可能只喜欢部分功能。比如同时使用 OpenSpec 和 Superpowers 时，可能只用 OpenSpec 的 Spec 管理能力，而编码上更喜欢 Superpowers 的 TDD 驱动。
+1. `/comet-open` 创建或恢复 OpenSpec change，并写入 Comet 工作流状态。
+2. `/comet-design` 基于 OpenSpec 制品生成更深入的 Superpowers 设计文档，并使用 CodeGraph context 作为代码证据。
+3. `/comet-build` 生成实现计划，要求用户选择隔离方式和执行方式，然后按计划实现。
+4. `/comet-verify` 要求可追溯的验证证据，满足条件后才允许通过阶段。
+5. `/comet-archive` 将 delta specs 同步回 main specs，标注关联文档，归档 change，并刷新 CodeGraph 索引。
 
-长期使用 Skill 的人都知道，这些能力是可以自由组合的，但具体怎么做依然需要真正的实践。Comet 项目可以作为参考：
-
-- **如何稳定触发嵌套 Skill** — 不是让 Agent 依靠文档描述做了“看起来像触发了 Skill”的操作（比如根据 Skill 描述写了文件），而是真正触发 Skill（核心特征：CC 上有 Skill 触发的打印）。Comet 中会触发大量来自 OpenSpec 和 Superpowers 的能力，这段 Prompt 是怎么写的？
-
-- **如何让组合 Skill 多阶段自动流转** — 不是靠人工介入。Comet 的 5 阶段流程，除必要的用户选择项外，核心流程能够自动进行 Skill 触发，同时状态机机制也能保障状态扭转的可靠性。
-
-- **如何把 Spec 生命周期做成可恢复流程** — Comet 会把 OpenSpec 的 change/spec 制品与 Superpowers 的设计、计划文档关联起来，并通过 `.comet.yaml` 记录阶段、执行模式、验证结果和归档状态，让 Agent 中断后能够继续，而不是重新翻文档猜进度。
-
-- **如何把文档同步从“用户提醒”变成自动化** — Comet 将 handoff、状态更新、校验和归档同步放进脚本化流程，减少“记得更新 design doc”“记得同步 spec”“记得归档 change”这类反复提示。
-
-- **如何设计 Agent 可执行的守护条件** — Comet 的阶段退出不是简单相信 Agent 说“完成了”，而是通过 `comet-guard.sh`、`comet-yaml-validate.sh`、`comet-state.sh` 等脚本检查任务、状态字段、验证证据和归档条件，满足条件后才允许推进。
-
-- **如何做跨平台 Skill 分发和安装** — Comet 支持多种 AI 编码平台、项目级/全局安装、中文/英文 Skill 选择，以及平台差异化目录（例如 Antigravity 的项目级和全局路径不同），可以作为 CLI 安装器和 Skill 打包结构的参考。
-
-- **如何把 shell 脚本写成 Agent 工作流基础设施** — Comet 的脚本需要兼容 macOS、Linux、Windows Git Bash，处理 hash、YAML 字段、状态机和归档流程。它展示了如何把原本容易写散在 Prompt 里的流程控制，沉淀成可测试、可复用的工具。
+每个需要理解代码的阶段都会使用 `comet-codegraph-context.sh` 生成 `COMET_CODEGRAPH_CONTEXT_FILE`（默认是 `openspec/.comet/codegraph-context.md`）。CodeGraph context 是主要代码证据，会被传给 OpenSpec 和 Superpowers；agent 应优先使用关系分析、影响面、受影响测试和定向源码摘录，再按需读取源码。
 
 ## 安装
 
@@ -95,10 +68,20 @@ comet init
 1. 提示你选择 AI 平台（自动检测已有配置）
 2. 选择安装范围：项目级（当前目录）或全局（用户主目录）
 3. 选择 Comet 技能语言：中文（默认）或 English
-4. 安装 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 技能
-5. 安装 [Superpowers](https://github.com/obra/superpowers) 技能
-6. 将 Comet 技能（你选择的语言）部署到所选平台
-7. 在项目级安装时创建 `docs/superpowers/specs/` 和 `docs/superpowers/plans/` 工作目录
+4. 安装 CodeGraph CLI 依赖并初始化代码证据能力
+5. 默认生成 `.codegraph/architecture.mmd`，除非传入 `--skip-viz`
+6. 安装 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 技能
+7. 安装 [Superpowers](https://github.com/obra/superpowers) 技能
+8. 将 Comet 技能（你选择的语言）部署到所选平台
+9. 在项目级安装时创建 `docs/superpowers/specs/` 和 `docs/superpowers/plans/` 工作目录
+
+初始化后，在你的 AI 编码 Agent 中启动一个 change：
+
+```text
+/comet "your idea"
+```
+
+对于存量项目，可以先运行 `/comet-scan`，让 CodeGraph 建立上下文，并让 OpenSpec 基于已确认的代码证据探索现有能力。
 
 > [!TIP]
 > 更新版本号
@@ -113,14 +96,6 @@ comet init
 npx skills add rpamis/comet
 ```
 
-## 运行截图
-
-<p align="center">
-  <img src="https://github.com/rpamis/comet/blob/master/img/runner.png" alt="runner">
-</p>
-<p align="center">自动安装 OpenSpec、Superpowers，一键配置开发环境</p>
-<p align="center">多阶段 Skill 入口，自动识别当前 Spec 阶段，核心流程自动触发，关键节点人工审核</p>
-
 ## CLI命令
 
 <details>
@@ -133,6 +108,7 @@ npx skills add rpamis/comet
 | `--yes` | 非交互模式，自动选择已检测平台（未检测到则选择全部） |
 | `--scope <scope>` | 安装范围：`project` 或 `global` |
 | `--language <lang>` | Skill 语言：`zh`（默认）或 `en` |
+| `--skip-viz` | 跳过 CodeGraph 架构图生成 |
 | `--skip-existing` | 跳过已安装的组件 |
 | `--overwrite` | 覆盖已安装的组件 |
 | `--json` | 输出结构化 JSON |
@@ -241,6 +217,7 @@ npx skills add rpamis/comet
 | 脚本 | 用途 |
 |--------|---------|
 | `comet-env.sh` | 脚本发现助手 — 导出 `COMET_GUARD`、`COMET_STATE`、`COMET_HANDOFF`、`COMET_ARCHIVE` 等内置脚本路径 |
+| `comet-codegraph-context.sh` | CodeGraph context 导出器 — 写入 `COMET_CODEGRAPH_CONTEXT_FILE`，包含索引状态、结构、调用关系、影响面、受影响测试和定向源码摘录 |
 | `comet-guard.sh` | 阶段转换守护 — 验证退出条件，`--apply` 自动更新 `.comet.yaml` |
 | `comet-handoff.sh` | 设计交接 — 从 OpenSpec 制品生成带 SHA256 追踪的确定性上下文包 |
 | `comet-archive.sh` | 一键归档 — 验证状态、同步 specs、移至归档、更新状态 |
@@ -270,6 +247,18 @@ context_skills:
 ```
 
 执行 `/comet-design` 和 `/comet-build` 时，Comet 会读取 `context_skills`，并要求 agent 在设计或实现前逐个加载这些技能。若未配置 context skill，流程继续，但 agent 不得声称已遵循未提供的项目专属规范。
+
+## CodeGraph 证据
+
+CodeGraph 是 Comet 工作流的一等能力：
+
+- `comet init` 会安装 `codegraph@latest`，初始化 CodeGraph 支持，并默认生成 `.codegraph/architecture.mmd`。
+- `comet init --skip-viz` 会保留安装流程，但跳过架构图生成。
+- `/comet-scan` 面向存量项目：先构建 CodeGraph context，再让 OpenSpec explore 基于已确认的代码证据生成 spec 草稿。
+- `/comet-open`、`/comet-design`、`/comet-build`、`/comet-verify`、`/comet-hotfix` 和 `/comet-tweak` 都会在需要理解代码前生成对应阶段的 CodeGraph context。
+- `comet-codegraph-context.sh` 会写入 `COMET_CODEGRAPH_CONTEXT_FILE`，默认路径是 `openspec/.comet/codegraph-context.md`。
+
+生成的 context 包含 CodeGraph 索引状态、已索引文件结构、符号搜索、callers/callees/impact 关系、可用时的受影响测试，以及定向源码摘录。它不是为了禁止 agent 阅读源码，而是让阅读源码之前先有证据、有边界。
 
 ## 工作流
 
@@ -317,6 +306,8 @@ Comet 使用解耦状态架构，YAML 文件独立管理：
 | `.comet.yaml` | Comet | 工作流阶段、执行模式、验证状态 |
 
 所有状态和运行阶段都通过脚本更新，并且会在每个阶段退出前校验任务是否真实完成。相比于将复杂状态管理写在 Skill 文本中，脚本化状态机能更稳定地保障阶段流转、YAML 正确性和断点恢复；Agent 只需要通过 Comet 内置命令读取状态，就能知道当前 Spec 处于哪个阶段。
+
+`comet-state.sh` 是 `.comet.yaml` 的写入接口；`comet-guard.sh` 负责校验并推进阶段；`comet-handoff.sh` 记录设计交接包和 hash；`comet-archive.sh` 在归档时完成同步，并随后执行 `codegraph sync`。
 
 <details>
 <summary>查看 .comet.yaml 关键字段</summary>
@@ -401,6 +392,7 @@ your-project/
 │   │   └── scripts/
 │   │       ├── comet-guard.sh       # 阶段转换守护（--apply 自动更新状态）
 │   │       ├── comet-env.sh         # 脚本发现助手
+│   │       ├── comet-codegraph-context.sh # CodeGraph context 导出器
 │   │       ├── comet-handoff.sh     # 设计交接（OpenSpec → Superpowers 上下文追踪）
 │   │       ├── comet-archive.sh     # 一键归档自动化
 │   │       ├── comet-yaml-validate.sh # 模式校验器
@@ -416,8 +408,14 @@ your-project/
 │           ├── .comet.yaml          # Comet 工作流状态（解耦）
 │           ├── proposal.md
 │           ├── design.md
+│           ├── test-cases.md        # 当前 change 的验证矩阵
 │           ├── specs/<capability>/spec.md
 │           └── tasks.md
+├── openspec/.comet/
+│   └── codegraph-context.md         # COMET_CODEGRAPH_CONTEXT_FILE
+├── .codegraph/
+│   ├── codegraph.db                 # CodeGraph 索引
+│   └── architecture.mmd             # 生成的架构图
 └── docs/superpowers/            # Superpowers — HOW
     ├── specs/                   # 设计文档
     └── plans/                   # 实现计划
@@ -429,33 +427,6 @@ your-project/
 
 详见 [CHANGELOG.md](CHANGELOG.md) 了解版本历史与更新。
 
-## 路线图
-
-在 [Comet Roadmap](https://github.com/orgs/rpamis/projects/1) 查看开发进展与即将推出的功能。
-
-## Star历史
-
-[![Star History Chart](https://api.star-history.com/svg?repos=rpamis/comet&type=Date)](https://star-history.com/#rpamis/comet&Date)
-
-## Contributors
-
-<a href="https://github.com/rpamis/comet/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=rpamis/comet&max=999&columns=12&anon=1" />
-</a>
-
 ## License
 
 [MIT](LICENSE)
-
-## 社区交流
-
-<p align="center">
-  <img src="https://github.com/rpamis/comet/blob/master/img/wechat.jpg" alt="微信群" width="200" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://github.com/rpamis/comet/blob/master/img/qq.jpg" alt="QQ群" width="200" />
-</p>
-
-<p align="center">微信群 &nbsp;&nbsp;|&nbsp;&nbsp; QQ群</p>
-
-## 友情链接
-[LINUX DO - 新的理想型社区](https://linux.do/)
