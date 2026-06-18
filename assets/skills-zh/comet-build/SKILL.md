@@ -173,7 +173,7 @@ git rev-parse HEAD
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
 ```
 
-如果本 change 涉及 UI、设计稿、内部组件库或 design system，在加载执行技能前使用 Skill 工具加载项目提供的 `comet-component-library` skill。该 skill 应提供内部组件 API、约束、示例和禁止事项；若该 skill 仍是占位内容或未提供有效组件信息，记录“组件库上下文未提供”，继续执行，但不得声称实现已按内部组件库约束完成。
+在加载执行技能前读取 `openspec/comet.yaml` 的 `context_skills` 列表。若配置了一个或多个项目上下文 skill，必须逐个使用 Skill 工具加载；这些 skill 应提供开发规范、架构约束、内部组件 API、设计稿映射规则、安全要求、测试规范或其他项目约束。若未配置或加载后未提供有效上下文，记录“项目未配置 context skill”或“context skill 未提供有效项目上下文”，继续执行，但不得声称实现已遵循未提供的项目专属约束。
 
 加载 `subagent-driven-development` 或 `executing-plans` 时，ARGUMENTS 必须包含同一 Language 约束和 CodeGraph 约束：
 

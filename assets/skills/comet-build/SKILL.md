@@ -173,7 +173,7 @@ Before loading `subagent-driven-development` or `executing-plans`, refresh build
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
 ```
 
-If this change involves UI, design files, an internal component library, or a design system, use the Skill tool to load the project-provided `comet-component-library` skill before loading the execution skill. The skill should provide internal component APIs, constraints, examples, and prohibitions. If the skill is still placeholder content or does not provide usable component guidance, record "component library context unavailable" and continue execution, but do not claim the implementation followed internal component-library constraints.
+Before loading the execution skill, read the `openspec/comet.yaml` `context_skills` list. If one or more project context skills are configured, use the Skill tool to load each of them; these skills should provide development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other project constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue execution, but do not claim the implementation followed project-specific constraints that were not provided.
 
 When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint and CodeGraph constraint:
 

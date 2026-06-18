@@ -257,6 +257,20 @@ Spec 生命周期管理：propose、explore、sync、verify、archive 等。
 
 开发方法论：brainstorming、TDD、subagent-driven development、code review、plan writing 等。
 
+### 可选上下文技能
+
+Comet 不再内置项目专属上下文说明。可以在项目配置中声明希望 Comet 加载的任意上下文技能，例如开发规范、架构约束、组件库说明、安全要求或测试规范：
+
+```yaml
+# openspec/comet.yaml
+context_skills:
+  - my-development-standards
+  - my-component-library
+  - my-security-guidelines
+```
+
+执行 `/comet-design` 和 `/comet-build` 时，Comet 会读取 `context_skills`，并要求 agent 在设计或实现前逐个加载这些技能。若未配置 context skill，流程继续，但 agent 不得声称已遵循未提供的项目专属规范。
+
 ## 工作流
 
 ```

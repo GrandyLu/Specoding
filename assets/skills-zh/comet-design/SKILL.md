@@ -77,7 +77,7 @@ handoff_hash: <sha256>
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
 ```
 
-如果本 change 涉及 UI、设计稿、内部组件库或 design system，先使用 Skill 工具加载项目提供的 `comet-component-library` skill。该 skill 用于读取内部组件库的组件 API、使用约束、设计稿映射规则和示例；若该 skill 仍是占位内容或未提供有效组件信息，记录“组件库上下文未提供”，继续设计，但不得声称已按内部组件库约束完成组件选型。
+先读取 `openspec/comet.yaml` 的 `context_skills` 列表。若配置了一个或多个项目上下文 skill，必须逐个使用 Skill 工具加载；这些 skill 可提供开发规范、架构约束、内部组件 API、设计稿映射规则、安全要求、测试规范或其他项目约束。若未配置或加载后未提供有效上下文，记录“项目未配置 context skill”或“context skill 未提供有效项目上下文”，继续设计，但不得声称已遵循未提供的项目专属约束。
 
 **立即执行：** 使用 Skill 工具加载 Superpowers `brainstorming` 技能，ARGUMENTS 包含：
 
@@ -90,7 +90,7 @@ Language: 使用触发本次工作流的用户请求语言输出；Design Doc、
 
 OpenSpec 产物是上游事实源，不要重新定义需求，不要重写 proposal/spec。
 你的任务是基于交接包和 CodeGraph Context 做深度技术设计：实现方案、技术风险、测试策略、边界条件。CodeGraph Context 是主要代码证据；不得全量扫描源码，只能在 Relationship Analysis / Impact / Targeted Source Excerpts 仍不足时按需读取少量相关文件。
-如本 change 涉及 UI 或设计稿，优先使用 `comet-component-library` skill 提供的内部组件库约束完成组件选型、页面结构和交互状态设计；不要在 Design Doc 中重复粘贴组件库全文。
+如本 change 涉及项目专属规范、组件选型、组件使用、设计稿组件映射、安全要求或测试规范，优先使用 `openspec/comet.yaml` 的 `context_skills` 所配置 skill 提供的约束；不要在 Design Doc 中重复粘贴上下文 skill 全文。
 如发现 OpenSpec delta spec 缺少验收场景，只能提出 Spec Patch，并回写 OpenSpec delta spec；不要在 Design Doc 中创建第二份需求 spec。
 
 Design Doc frontmatter 必须最小化，只包含：

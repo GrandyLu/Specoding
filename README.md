@@ -287,6 +287,20 @@ Spec lifecycle management: propose, explore, sync, verify, archive, and more.
 
 Development methodology: brainstorming, TDD, subagent-driven development, code review, plan writing, and more.
 
+### Optional Context Skills
+
+Comet does not bundle project-specific context guidance. Configure any context skills your project wants Comet to load, such as development standards, architecture rules, component-library guidance, security requirements, or testing conventions:
+
+```yaml
+# openspec/comet.yaml
+context_skills:
+  - my-development-standards
+  - my-component-library
+  - my-security-guidelines
+```
+
+During `/comet-design` and `/comet-build`, Comet reads `context_skills` and asks the agent to load each configured skill before design or implementation. If no context skills are configured, the workflow continues, but agents must not claim compliance with project-specific guidance that was not provided.
+
 ## Workflow
 
 ```

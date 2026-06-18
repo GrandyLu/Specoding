@@ -48,7 +48,6 @@ All notable changes to @rpamis/comet will be documented in this file.
 - **Plan-ready build pause state**: Added `build_pause` as a dedicated build-phase pause marker so Comet can stop after plan generation without confusing the pause with the actual execution method.
 - **Plan-ready pause design**: Added a design record for the model-switching pause workflow, covering recovery behavior, stale pause handling, and plan-missing remediation.
 - **Per-change test matrix**: Added `test-cases.md` and the `test_cases` state field so each change can define targeted verification cases without maintaining a whole-project test catalog.
-- **Component library skill placeholder**: Added a reserved `comet-component-library` skill in English and Chinese so projects can inject internal component APIs, design-file mapping rules, and usage constraints.
 
 ### Changed
 
@@ -60,7 +59,7 @@ All notable changes to @rpamis/comet will be documented in this file.
 - **Build recovery routing**: `/comet` and `/comet-build` now recognize `build_pause: plan-ready`, reuse the existing plan, and resume at workspace isolation and execution-method selection instead of regenerating the plan.
 - **Bilingual workflow documentation**: Chinese and English Comet skills now describe the plan-ready pause point, clarify that `build_pause` is not `build_mode`, and document the same state field in both README files.
 - **TDD evidence workflow**: Comet open, design, build, and verify now route task planning and verification reports through the per-change test matrix, allowing unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other traceable evidence.
-- **Component library routing**: UI-related design and build phases now load the optional `comet-component-library` skill before component selection or implementation, while treating missing placeholder guidance as unavailable context rather than proof of compliance.
+- **Configurable context skills**: Design and build phases now load project-configured skills from `openspec/comet.yaml` `context_skills`, letting projects choose their own development standards, architecture guidance, component-library rules, security requirements, or testing conventions without bundling placeholder Comet skills.
 - **Default skill language**: Comet init and low-level skill copying now default to Chinese skills while preserving explicit `--language en` support for English skill installation.
 
 ### Fixed
@@ -82,6 +81,10 @@ All notable changes to @rpamis/comet will be documented in this file.
 - **README state-field regression**: Added README coverage to ensure `build_pause` appears in examples and field descriptions for both English and Chinese documentation.
 - **Test matrix state regression**: Added shell-script coverage for `test_cases` initialization, state updates, schema validation, and the generated per-change test matrix template.
 - **Language default regression**: Added coverage that non-interactive init defaults to Chinese skills and can still explicitly install English skills.
+
+### Removed
+
+- **Component library placeholder skill**: Removed the bundled `comet-component-library` placeholder so projects supply component-library, development-standard, security, testing, or other guidance through configured context skills instead of inherited placeholder files.
 
 ## What's Changed [0.3.5] - 2026-05-29
 

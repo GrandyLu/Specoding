@@ -50,6 +50,11 @@ describe('skills', () => {
       expect(skills.length).toBeGreaterThan(0);
       expect(skills.some((s) => s.includes('comet/SKILL.md'))).toBe(true);
     });
+
+    it('does not bundle the reserved component library placeholder skill', async () => {
+      const skills = await getManifestSkills();
+      expect(skills).not.toContain('comet-component-library/SKILL.md');
+    });
   });
 
   describe('createWorkingDirs', () => {
@@ -263,6 +268,12 @@ describe('skills', () => {
       expect(zhBuild).toContain('CRITICAL review 发现必须先修复');
       expect(zhBuild).toContain('非 CRITICAL review 发现');
 
+      // Component context skills must be project-configured instead of bundled placeholders.
+      expect(zhDesign).toContain('`openspec/comet.yaml` 的 `context_skills` 列表');
+      expect(zhBuild).toContain('`openspec/comet.yaml` 的 `context_skills` 列表');
+      expect(zhDesign).not.toContain('`comet-component-library` skill');
+      expect(zhBuild).not.toContain('`comet-component-library` skill');
+
       // MEDIUM: comet-verify Step 1b handles mixed CRITICAL/non-CRITICAL
       expect(zhVerify).toContain('CRITICAL 失败项必须修复');
       expect(zhVerify).toContain('不允许跳过修复直接全部接受');
@@ -394,6 +405,12 @@ describe('skills', () => {
       expect(enBuild).toContain('build → verify');
       expect(enBuild).toContain('CRITICAL review findings must be fixed first');
       expect(enBuild).toContain('non-CRITICAL review findings');
+
+      // Component context skills must be project-configured instead of bundled placeholders.
+      expect(enDesign).toContain('`openspec/comet.yaml` `context_skills` list');
+      expect(enBuild).toContain('`openspec/comet.yaml` `context_skills` list');
+      expect(enDesign).not.toContain('`comet-component-library` skill');
+      expect(enBuild).not.toContain('`comet-component-library` skill');
       expect(enVerify).toContain('CRITICAL failures must be fixed');
       expect(enVerify).toContain('skipping fix to accept all is not allowed');
       expect(enHotfix).toContain('workspace isolation and execution-method selection when tasks exceed 3 and transfer to `/comet-build`');
@@ -531,16 +548,12 @@ describe('skills', () => {
     });
   });
 
-  describe('Comet test matrix and component library workflow', () => {
-    it('ships the reserved component-library skill and routes per-change test cases through bilingual workflows', async () => {
+  describe('Comet test matrix and configurable UI context workflow', () => {
+    it('does not ship a component-library placeholder and routes test cases plus UI context through bilingual workflows', async () => {
       const manifest = await readManifest();
-      expect(manifest.skills).toContain('comet-component-library/SKILL.md');
+      expect(manifest.skills).not.toContain('comet-component-library/SKILL.md');
 
       for (const languageDir of ['skills', 'skills-zh'] as const) {
-        const componentLibrary = await fs.readFile(
-          path.resolve('assets', languageDir, 'comet-component-library', 'SKILL.md'),
-          'utf-8',
-        );
         const open = await fs.readFile(
           path.resolve('assets', languageDir, 'comet-open', 'SKILL.md'),
           'utf-8',
@@ -558,12 +571,15 @@ describe('skills', () => {
           'utf-8',
         );
 
-        expect(componentLibrary).toMatch(/placeholder|占位/);
         expect(open).toContain('test-cases.md');
         expect(open).toContain('test_cases');
-        expect(design).toContain('comet-component-library');
+        expect(design).not.toContain('comet-component-library');
+        expect(design).toContain('context_skills');
+        expect(design).not.toContain('context_skills.components');
         expect(design).toContain('test-cases.md');
-        expect(build).toContain('comet-component-library');
+        expect(build).not.toContain('comet-component-library');
+        expect(build).toContain('context_skills');
+        expect(build).not.toContain('context_skills.components');
         expect(build).toContain('Test Cases: openspec/changes/<name>/test-cases.md');
         expect(verify).toContain('openspec/changes/<name>/test-cases.md');
       }

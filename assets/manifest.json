@@ -11,7 +11,6 @@
     "comet/scripts/comet-yaml-validate.sh",
     "comet/scripts/comet-codegraph-context.sh",
     "comet-open/SKILL.md",
-    "comet-component-library/SKILL.md",
     "comet-design/SKILL.md",
     "comet-build/SKILL.md",
     "comet-verify/SKILL.md",
