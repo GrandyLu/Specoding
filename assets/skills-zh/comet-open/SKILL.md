@@ -17,6 +17,18 @@ description: "Comet 阶段 1：开启。用 /comet-open 调用。通过 OpenSpec
 
 ### 1. 探索想法与需求澄清
 
+先生成本阶段 CodeGraph 上下文。运行此工作流前请确保 CodeGraph 已安装——如不可用，请运行 `comet init` 或手动执行 `npm install -g codegraph@latest` 安装。若 CodeGraph 缺失，可继续需求澄清，但不得声称已基于代码事实完成探索。
+
+```bash
+COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"
+if [ -z "$COMET_ENV" ]; then
+  echo "ERROR: comet-env.sh not found. Ensure the comet skill is installed." >&2
+  return 1
+fi
+. "$COMET_ENV"
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" open "<change-name-or-user-request>"
+```
+
 **立即执行：** 使用 Skill 工具加载 `openspec-explore` 技能。禁止跳过此步骤。
 
 技能加载后，按其指引探索问题空间，但不得把一次问答视为足够澄清。必须围绕下列内容继续提问、对齐并形成澄清摘要：
@@ -25,6 +37,12 @@ description: "Comet 阶段 1：开启。用 /comet-open 调用。通过 OpenSpec
 - 范围边界：涉及/不涉及的模块、用户、平台或数据
 - 关键未知项：仍不确定的假设、风险或依赖
 - 验收场景草案：至少覆盖核心成功场景和关键边界场景
+
+```
+Language: 使用触发本次工作流的用户请求语言输出。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
+遵循 `/comet` 的 CodeGraph 代码证据规则。
+```
 
 澄清摘要必须包含：目标、非目标、范围边界、关键未知项、验收场景草案。
 
@@ -96,6 +114,11 @@ OpenSpec change 名称必须是 **kebab-case 英文**（小写字母、数字、
 
 技能加载后，按其指引创建 change 骨架，但当 Step 1b 的已确认澄清摘要已存在于对话上下文时，覆盖其"STOP and wait for user direction"行为。
 
+```
+Language: 使用触发本次工作流的用户请求语言输出 proposal.md、design.md、tasks.md 和必要的 delta spec。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。遵循 `/comet` 的 CodeGraph 代码证据规则生成 proposal/design/tasks。
+```
+
 如果用户已确认澄清摘要（Step 1b），直接使用该摘要填充产物内容。如果不存在澄清摘要（边缘情况），回退到技能的默认行为，询问用户。
 
 change 骨架创建后，按以下标准产物循环逐个生成 `proposal`、`design`、`tasks`：
@@ -132,7 +155,8 @@ openspec/changes/<name>/
 ├── .comet.yaml
 ├── proposal.md       # Why + What：问题、目标、范围
 ├── design.md         # How（高层）：架构决策、方案选型
-└── tasks.md          # 任务清单（勾选框）
+├── tasks.md          # 任务清单（勾选框）
+└── test-cases.md     # 本 change 的测试/验证矩阵
 ```
 
 创建 `.comet.yaml` 状态文件：
@@ -153,6 +177,8 @@ fi
 "$COMET_BASH" "$COMET_STATE" init <name> full
 ```
 
+`init` 会创建 `test-cases.md` 模板，并在 `.comet.yaml` 中写入 `test_cases: openspec/changes/<name>/test-cases.md`。进入 build 前按 `/comet` 的验证矩阵规则补全该文档。
+
 ### 3. 入口状态验证
 
 验证状态机已正确初始化：
@@ -171,8 +197,9 @@ fi
 - **proposal.md**：问题背景、目标、范围、非目标
 - **design.md**：高层架构决策、方案选型、数据流
 - **tasks.md**：任务列表，每个任务有明确描述
+- **test-cases.md**：本 change 的验收场景、关联 task、验证方式、通过标准和证据位置
 
-**文件存在性验证**：逐个确认三个文件路径存在且非空。任一文件缺失或为空时，不得进入 Step 5 或执行阶段守卫，必须回到创建步骤补充。
+**文件存在性验证**：逐个确认四个文件路径存在且非空。任一文件缺失或为空时，不得进入 Step 5 或执行阶段守卫，必须回到创建步骤补充。
 
 ### 5. 用户审视确认（阻塞点）
 
@@ -184,6 +211,7 @@ fi
 - **proposal.md**：问题背景、目标、范围
 - **design.md**：高层架构决策、方案选型
 - **tasks.md**：任务数量和关键任务描述
+- **test-cases.md**：按验证矩阵规则列出关键验收场景和证据方式
 
 **选项**：
 - 「确认，继续下一阶段」— 产物符合预期，执行阶段守卫流转
@@ -193,7 +221,8 @@ fi
 
 ## 退出条件
 
-- proposal.md、design.md、tasks.md 均已创建且内容完整
+- proposal.md、design.md、tasks.md、test-cases.md 均已创建且内容完整
+- `.comet.yaml` 的 `test_cases` 指向本 change 的非空测试/验证矩阵
 - **用户已确认** proposal、design、tasks 内容符合预期
 - **阶段守卫**：运行 `"$COMET_BASH" "$COMET_GUARD" <change-name> open --apply`，全部 PASS 后由守卫推进到下一阶段（此步骤更新 `phase` 字段，与 `auto_transition` 无关）
 

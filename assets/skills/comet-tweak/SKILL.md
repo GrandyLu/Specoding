@@ -74,11 +74,17 @@ Use tweak defaults: `build_mode: direct`. Skip Superpowers `brainstorming` and `
 
 Before continuing or starting changes, handle uncommitted changes through `comet/reference/dirty-worktree.md`. If attribution shows scope exceeds tweak, handle it through this file's "Upgrade Conditions".
 
+Before editing, generate tweak CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" tweak "<change-name>"
+```
+
 **Immediately execute:** Execute tasks one by one according to tasks.md:
 
 1. Read `openspec/changes/<name>/tasks.md`, get incomplete task list
 2. For each incomplete task:
-   - Modify target files according to task description
+   - Modify target files according to the task description and CodeGraph Context; read or modify only files pointed to by CodeGraph or explicitly required by the task. Do not scan the whole repository
    - Run project formatter (e.g., `mvn spotless:apply`, `npm run format`)
    - Run related tests to confirm pass
    - Check corresponding `- [ ]` to `- [x]` in tasks.md

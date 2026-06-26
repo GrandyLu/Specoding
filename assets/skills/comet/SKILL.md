@@ -24,6 +24,20 @@ Agents need only read this section for decision-making. Refer to the Reference A
 
 Use the language of the user request that triggered this workflow as the default output language. When resuming an existing change with a clear dominant artifact language, preserve that language unless the user explicitly asks to switch.
 
+### CodeGraph Code Evidence Rule
+
+Every step that needs to understand, locate, design, plan, implement, or verify local code must first generate and read phase-specific CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" <mode> "<change-name-or-user-request>"
+```
+
+`$COMET_CODEGRAPH_CONTEXT_FILE` is the primary code evidence passed from Comet to OpenSpec / Superpowers. ARGUMENTS must explicitly include this file and require downstream skills to prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts. Do not scan the full source tree. Only read a small number of CodeGraph-directed files when CodeGraph evidence is insufficient to explain behavior.
+
+### Verification Matrix Rule
+
+`test-cases.md` is only a verification ledger. `openspec/changes/<name>/test-cases.md` records key acceptance scenarios, related tasks, verification methods, pass criteria, evidence locations, and actual results; it is not a whole-project test catalog and must not copy the execution flow from Superpowers `test-driven-development` or `verification-before-completion`. Phase skills only need to reference this matrix, supplement entries when needed, and write back summaries of actual evidence produced by Superpowers or project commands.
+
 ### Automatic Phase Detection
 
 **Step 0: Active Change Discovery and Intent Detection**
@@ -125,7 +139,7 @@ Flow chain: open → design → build → verify → archive
 Nodes requiring user participation (pause only at these nodes):
 1. Open phase proposal/design/tasks review and confirmation
 2. Confirm design approach during brainstorming
-3. Plan-ready pause choice during build phase, followed by workflow configuration selection (isolation + execution method + TDD mode)
+3. Plan-ready pause choice during build phase, followed by workflow configuration selection (isolation + execution method; `tdd_mode` and `review_mode` already have full-workflow defaults and are changed only on explicit user override)
 4. Decide to fix or accept deviation when verify fails (including Spec drift handling)
 5. Choose branch handling method for finishing-branch
 6. Archive phase final confirmation before running the archive script
@@ -184,7 +198,7 @@ Agents should not skip these decision points; other unambiguous phase transition
 - Before `build → verify`, `isolation` must be `branch` or `worktree`
 - Before `build → verify`, `build_mode` must be selected
 - `build_mode: subagent-driven-development` must also have `subagent_dispatch: confirmed`
-- Before full workflow leaves build phase, `tdd_mode` must be selected as `tdd` or `direct`
+- Full workflow init defaults `tdd_mode` to `tdd`; before leaving build phase it must still be `tdd` or `direct`
 - `build_mode: direct` is allowed by default only for `hotfix` / `tweak`; full workflow requires `direct_override: true`
 - `build_pause` is not an execution method and must not be written to `build_mode`
 - These constraints are enforced by both `comet-guard.sh build --apply` and `comet-state.sh transition <name> build-complete`

@@ -17,6 +17,18 @@ Every prompt and artifact request passed to OpenSpec must include the output-lan
 
 ### 1. Explore Ideas and Clarify Requirements
 
+First generate phase-specific CodeGraph context. Ensure CodeGraph is installed before running this workflow—if unavailable, run `comet init` or install manually with `npm install -g codegraph@latest`. You may continue requirement clarification if CodeGraph is missing, but do not claim code-grounded exploration without CodeGraph output.
+
+```bash
+COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"
+if [ -z "$COMET_ENV" ]; then
+  echo "ERROR: comet-env.sh not found. Ensure the comet skill is installed." >&2
+  return 1
+fi
+. "$COMET_ENV"
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" open "<change-name-or-user-request>"
+```
+
 **Immediately execute:** Use the Skill tool to load the `openspec-explore` skill. Skipping this step is prohibited.
 
 After the skill loads, explore the problem space following its guidance, but do not treat one Q&A turn as sufficient clarification. You must continue asking, align with the user, and form a clarification summary covering:
@@ -25,6 +37,12 @@ After the skill loads, explore the problem space following its guidance, but do 
 - Scope boundaries: included/excluded modules, users, platforms, or data
 - Key unknowns: unresolved assumptions, risks, or dependencies
 - Draft acceptance scenarios: at least the core success scenario and important boundary scenarios
+
+```
+Language: Use the language of the user request that triggered this workflow.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
+Follow the `/comet` CodeGraph Code Evidence Rule.
+```
 
 The clarification summary must include: goals, non-goals, scope boundaries, key unknowns, and draft acceptance scenarios.
 
@@ -96,6 +114,11 @@ Full `/comet` workflow must not use the Skill tool to load the `openspec-propose
 
 After the skill loads, follow its guidance to create the change skeleton, but override its "STOP and wait for user direction" behavior when a confirmed clarification summary from Step 1b is already available in the conversation context.
 
+```
+Language: Use the language of the user request that triggered this workflow for proposal.md, design.md, tasks.md, and any required delta specs.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule when creating proposal/design/tasks.
+```
+
 If the user has already confirmed a clarification summary (Step 1b), use that summary directly to populate artifact content. If no clarification summary exists (edge case), fall back to the skill's default behavior of asking the user.
 
 After the change skeleton is created, generate `proposal`, `design`, and `tasks` one by one using the standard artifact loop:
@@ -132,7 +155,8 @@ openspec/changes/<name>/
 ├── .comet.yaml
 ├── proposal.md       # Why + What: problem, goals, scope
 ├── design.md         # How (high-level): architecture decisions, approach selection
-└── tasks.md          # Task checklist (checkboxes)
+├── tasks.md          # Task checklist (checkboxes)
+└── test-cases.md     # Per-change test and verification matrix
 ```
 
 Create `.comet.yaml` state file:
@@ -153,6 +177,8 @@ fi
 "$COMET_BASH" "$COMET_STATE" init <name> full
 ```
 
+`init` creates a `test-cases.md` template and writes `test_cases: openspec/changes/<name>/test-cases.md` to `.comet.yaml`. Before entering build, complete this document according to the `/comet` Verification Matrix Rule.
+
 ### 3. Entry State Verification
 
 Verify state machine has been correctly initialized:
@@ -171,8 +197,9 @@ Confirm the three documents have complete content:
 - **proposal.md**: problem background, goals, scope, non-goals
 - **design.md**: high-level architecture decisions, approach selection, data flow
 - **tasks.md**: task list, each task has a clear description
+- **test-cases.md**: this change's acceptance scenarios, related tasks, verification methods, pass criteria, and evidence location
 
-**File existence verification**: Confirm all three file paths exist and are non-empty. If any file is missing or empty, must not enter Step 5 or execute phase guard — return to creation step to fill the gap.
+**File existence verification**: Confirm all four file paths exist and are non-empty. If any file is missing or empty, must not enter Step 5 or execute phase guard — return to creation step to fill the gap.
 
 ### 5. User Review and Confirmation (Blocking Point)
 
@@ -184,6 +211,7 @@ The user confirmation question must be presented as a single-select question wit
 - **proposal.md**: problem background, goals, scope
 - **design.md**: high-level architecture decisions, approach selection
 - **tasks.md**: task count and key task descriptions
+- **test-cases.md**: key acceptance scenarios and evidence methods according to the Verification Matrix Rule
 
 **Options**:
 - "Confirm, proceed to next phase" — artifacts meet expectations, execute phase guard transition
@@ -193,7 +221,8 @@ After user selects "Confirm", proceed to exit conditions. When user selects "Nee
 
 ## Exit Conditions
 
-- proposal.md, design.md, tasks.md all created with complete content
+- proposal.md, design.md, tasks.md, test-cases.md all created with complete content
+- `.comet.yaml` `test_cases` points to this change's non-empty test and verification matrix
 - **User has confirmed** proposal, design, tasks content meets expectations
 - **Phase guard**: Run `"$COMET_BASH" "$COMET_GUARD" <change-name> open --apply`; after all PASS, auto-transitions to next phase
 

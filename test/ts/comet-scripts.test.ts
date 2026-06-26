@@ -98,8 +98,10 @@ async function createChange(tmpDir: string, name: string, yaml: string, tasks = 
 }
 
 async function createFakeOpenSpecArchive(tmpDir: string, archiveDateScript = 'date +%Y-%m-%d') {
-  const fakeOpenSpec = path.join(tmpDir, 'fake-bin', 'openspec');
-  const logFile = path.join(tmpDir, 'fake-bin', 'openspec-args.log');
+  const fakeBinDir = path.join(tmpDir, 'fake-bin');
+  const fakeOpenSpec = path.join(fakeBinDir, 'openspec');
+  const fakeCodeGraph = path.join(fakeBinDir, 'codegraph');
+  const logFile = path.join(fakeBinDir, 'openspec-args.log');
   await writeFile(
     fakeOpenSpec,
     [
@@ -137,7 +139,12 @@ async function createFakeOpenSpecArchive(tmpDir: string, archiveDateScript = 'da
     ].join('\n'),
   );
   await fs.chmod(fakeOpenSpec, 0o755);
-  return { fakeOpenSpec, logFile };
+  await writeFile(
+    fakeCodeGraph,
+    ['#!/bin/bash', 'set -euo pipefail', '[ "${1:-}" = "sync" ]', ''].join('\n'),
+  );
+  await fs.chmod(fakeCodeGraph, 0o755);
+  return { fakeOpenSpec, logFile, fakeBinDir };
 }
 
 const describeShell = bashCommand ? describe : describe.skip;
@@ -190,6 +197,7 @@ describeShell('comet shell scripts', () => {
       'comet-archive.sh',
       'comet-guard.sh',
       'comet-handoff.sh',
+      'comet-codegraph-context.sh',
       'comet-state.sh',
       'comet-yaml-validate.sh',
       'comet-hook-guard.sh',
@@ -244,7 +252,7 @@ describeShell('comet shell scripts', () => {
     expect(yaml).toContain('subagent_dispatch: null');
   }, 20_000);
 
-  it('initializes tdd_mode as null for full workflow', async () => {
+  it('initializes tdd_mode as tdd for full workflow', async () => {
     const result = runBash(tmpDir, stateScript, ['init', 'tdd-defaults', 'full']);
     const yaml = await fs.readFile(
       path.join(tmpDir, 'openspec', 'changes', 'tdd-defaults', '.comet.yaml'),
@@ -252,10 +260,10 @@ describeShell('comet shell scripts', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(yaml).toContain('tdd_mode: null');
+    expect(yaml).toContain('tdd_mode: tdd');
   }, 20_000);
 
-  it('initializes review_mode as null for full workflow', async () => {
+  it('initializes review_mode as thorough for full workflow', async () => {
     const result = runBash(tmpDir, stateScript, ['init', 'review-defaults', 'full']);
     const yaml = await fs.readFile(
       path.join(tmpDir, 'openspec', 'changes', 'review-defaults', '.comet.yaml'),
@@ -263,7 +271,7 @@ describeShell('comet shell scripts', () => {
     );
 
     expect(result.status).toBe(0);
-    expect(yaml).toContain('review_mode: null');
+    expect(yaml).toContain('review_mode: thorough');
   }, 20_000);
 
   it('initializes review_mode as off for hotfix workflow', async () => {
@@ -795,6 +803,7 @@ describeShell('comet shell scripts', () => {
         'comet_change: handoff-change',
         'role: technical-design',
         'canonical_spec: openspec',
+        `canonical_spec_hash: ${contextHash}`,
         '---',
         '',
       ].join('\n'),
@@ -901,6 +910,11 @@ describeShell('comet shell scripts', () => {
     );
     expect(contextJson).toContain('"role": "spec"');
     expect(contextJson).toContain('"role": "supporting"');
+    const betaContextHash = runBash(tmpDir, stateScript, [
+      'get',
+      'beta-context',
+      'handoff_hash',
+    ]).stdout.trim();
 
     await writeFile(
       path.join(tmpDir, 'docs', 'superpowers', 'specs', 'beta-design.md'),
@@ -909,6 +923,7 @@ describeShell('comet shell scripts', () => {
         'comet_change: beta-context',
         'role: technical-design',
         'canonical_spec: openspec',
+        `canonical_spec_hash: ${betaContextHash}`,
         '---',
         '',
       ].join('\n'),
@@ -1059,6 +1074,11 @@ describeShell('comet shell scripts', () => {
       ].join('\n'),
     );
     runBash(tmpDir, handoffScript, ['frontmatter-prefix', 'design', '--write']);
+    const frontmatterHash = runBash(tmpDir, stateScript, [
+      'get',
+      'frontmatter-prefix',
+      'handoff_hash',
+    ]).stdout.trim();
     await writeFile(
       path.join(tmpDir, 'docs', 'superpowers', 'specs', 'frontmatter-prefix-design.md'),
       [
@@ -1068,6 +1088,7 @@ describeShell('comet shell scripts', () => {
         'comet_change: frontmatter-prefix',
         'role: technical-design',
         'canonical_spec: openspec',
+        `canonical_spec_hash: ${frontmatterHash}`,
         '---',
         '',
       ].join('\n'),
@@ -2233,7 +2254,7 @@ describeShell('comet shell scripts', () => {
 
   it('reports accurate archive step counts when syncing and annotating', async () => {
     const archiveScript = path.join(tmpDir, 'scripts', 'comet-archive.sh');
-    const { fakeOpenSpec, logFile } = await createFakeOpenSpecArchive(tmpDir);
+    const { fakeOpenSpec, logFile, fakeBinDir } = await createFakeOpenSpecArchive(tmpDir);
     await createChange(
       tmpDir,
       'ready-to-archive',
@@ -2286,16 +2307,17 @@ describeShell('comet shell scripts', () => {
 
     const result = runBash(tmpDir, archiveScript, ['ready-to-archive'], {
       COMET_OPENSPEC: toBashPath(fakeOpenSpec),
+      PATH: `${toBashPath(fakeBinDir)}:${process.env.PATH ?? ''}`,
     });
 
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain('Archive complete. 7/7 steps succeeded.');
+    expect(result.stderr).toContain('Archive complete. 8/8 steps succeeded.');
     await expect(fs.readFile(logFile, 'utf-8')).resolves.toBe('archive ready-to-archive --yes\n');
   }, 20_000);
 
   it('merges delta specs without copying delta-only requirement headings into main specs', async () => {
     const archiveScript = path.join(tmpDir, 'scripts', 'comet-archive.sh');
-    const { fakeOpenSpec } = await createFakeOpenSpecArchive(tmpDir);
+    const { fakeOpenSpec, fakeBinDir } = await createFakeOpenSpecArchive(tmpDir);
     await createChange(
       tmpDir,
       'merge-delta-spec',
@@ -2358,6 +2380,7 @@ describeShell('comet shell scripts', () => {
 
     const result = runBash(tmpDir, archiveScript, ['merge-delta-spec'], {
       COMET_OPENSPEC: toBashPath(fakeOpenSpec),
+      PATH: `${toBashPath(fakeBinDir)}:${process.env.PATH ?? ''}`,
     });
     const mainSpec = await fs.readFile(
       path.join(tmpDir, 'openspec', 'specs', 'capability', 'spec.md'),
@@ -2375,7 +2398,10 @@ describeShell('comet shell scripts', () => {
 
   it('annotates archive metadata with the actual OpenSpec archive directory name', async () => {
     const archiveScript = path.join(tmpDir, 'scripts', 'comet-archive.sh');
-    const { fakeOpenSpec } = await createFakeOpenSpecArchive(tmpDir, "printf '2026-05-20'");
+    const { fakeOpenSpec, fakeBinDir } = await createFakeOpenSpecArchive(
+      tmpDir,
+      "printf '2026-05-20'",
+    );
     await createChange(
       tmpDir,
       'utc-archive-date',
@@ -2403,6 +2429,7 @@ describeShell('comet shell scripts', () => {
 
     const result = runBash(tmpDir, archiveScript, ['utc-archive-date'], {
       COMET_OPENSPEC: toBashPath(fakeOpenSpec),
+      PATH: `${toBashPath(fakeBinDir)}:${process.env.PATH ?? ''}`,
     });
     const design = await fs.readFile(
       path.join(tmpDir, 'docs', 'superpowers', 'specs', 'utc-design.md'),

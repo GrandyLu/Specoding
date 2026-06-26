@@ -137,8 +137,8 @@ describe('skills', () => {
         'Use the invocation arguments below as the user input for this workflow:',
       );
       expect(command).toContain('$ARGUMENTS');
-      expect(command).toContain('# Comet Phase 1: Open');
-      expect(command).toContain('## Steps');
+      expect(command).toContain('# Comet 阶段 1：开启（Open）');
+      expect(command).toContain('## 步骤');
       expect(command).toContain('"$COMET_BASH" "$COMET_STATE" init <name> full');
       expect(command).not.toContain('Immediately load the `comet-open` skill with the skill tool');
       expect(path.basename(commandPath)).toBe('comet-open.md');
@@ -641,11 +641,21 @@ describe('skills', () => {
       expect(zhBuild).toContain('不得自动继续，也不得把暂停写入 `build_mode`');
       expect(zhBuild).toContain('`build_mode` 为 `executing-plans`');
       expect(zhBuild).toContain('review_mode');
+      expect(zhBuild).toContain('context_skills');
+      expect(zhBuild).toContain('review_skills');
+      expect(zhBuild).toContain('实现阶段只加载 `context_skills`');
+      expect(zhBuild).toContain('代码审查阶段只加载 `review_skills`');
+      expect(zhComet).toContain('`test-cases.md` 只作为验证账本');
+      expect(zhBuild).toContain('`test-cases.md` 只作为验证账本');
+      expect(zhBuild).not.toContain(
+        'TDD Discipline: 适合自动化测试的用例按 Superpowers `test-driven-development` 执行',
+      );
       expect(zhBuild).toContain('| `off` | 不自动派发代码审查 |');
       expect(zhBuild).toContain('| `standard` | 只在任务完成后运行一次最终轻量代码审查');
       expect(zhBuild).toContain(
         '| `thorough` | 按批次或风险边界运行合并审查，最后再运行一次完整审查 |',
       );
+      expect(zhBuild).toContain('full workflow 默认使用 `thorough`');
       expect(zhBuild).toContain('build → verify');
       expect(zhBuild).toContain(
         'CRITICAL review 发现（安全漏洞、数据丢失风险、构建/测试失败）必须先修复',
@@ -655,6 +665,8 @@ describe('skills', () => {
       expect(zhVerify).toContain('CRITICAL 或 IMPORTANT 失败项必须修复');
       expect(zhVerify).toContain('不允许跳过修复直接全部接受');
       expect(zhVerify).toContain('当 `review_mode: standard` 或 `thorough` 时');
+      expect(zhVerify).toContain('review_skills');
+      expect(zhVerify).toContain('代码审查前加载');
       expect(zhVerify).toContain('当 `review_mode: off` 时跳过自动代码审查');
       expect(zhVerify).toContain('只检查正确性、安全、边界条件');
       expect(zhVerify).toContain('无 CRITICAL 或 IMPORTANT 问题');
@@ -727,12 +739,13 @@ describe('skills', () => {
       expect(zhBuild).not.toContain('使用 Skill 工具加载对应技能');
       expect(zhBuild).toContain('tdd_mode');
       expect(zhBuild).toContain('`"$COMET_BASH" "$COMET_STATE" set <name> tdd_mode <tdd|direct>`');
+      expect(zhBuild).toContain('full workflow 默认使用 `tdd`');
       expect(zhBuild).toContain('若 `tdd_mode: tdd`');
       expect(zhBuild).toContain(
         'TDD 约束和证据门槛已在 `comet/reference/subagent-dispatch.md` 中定义',
       );
       expect(zhComet).toContain('`tdd_mode`');
-      expect(zhComet).toContain('full workflow 离开 build 阶段前 `tdd_mode` 必须已选择');
+      expect(zhComet).toContain('full workflow 初始化默认写入 `tdd_mode: tdd`');
       expect(zhHotfix).toContain('立即使用 Skill 工具加载 `comet-design` skill');
       expect(zhTweak).toContain('立即使用 Skill 工具加载 `comet-design` skill');
       expect(zhVerify).toContain(
@@ -885,8 +898,9 @@ describe('skills', () => {
         'Must not choose `branch` or `worktree` based on recommendation rules',
       );
       expect(enBuild).toContain(
-        'must not choose the execution method or TDD mode based on recommendation rules',
+        '`tdd_mode` defaults to `tdd` and `review_mode` defaults to `thorough` for full workflows',
       );
+      expect(enBuild).toContain('must not choose the execution method based on recommendation rules');
       expect(enBuild).toContain('`comet/reference/decision-point.md`');
       expect(enVerify).toContain(
         'must follow the `comet/reference/decision-point.md` protocol to pause and wait for the user to decide whether to fix or accept the deviation',
@@ -949,6 +963,15 @@ describe('skills', () => {
         'Must not auto-continue and must not write the pause into `build_mode`',
       );
       expect(enBuild).toContain('`build_mode` is `executing-plans`');
+      expect(enBuild).toContain('context_skills');
+      expect(enBuild).toContain('review_skills');
+      expect(enBuild).toContain('implementation phases load only `context_skills`');
+      expect(enBuild).toContain('code review phases load only `review_skills`');
+      expect(enComet).toContain('`test-cases.md` is only a verification ledger');
+      expect(enBuild).toContain('`test-cases.md` is only a verification ledger');
+      expect(enBuild).not.toContain(
+        'TDD Discipline: TDD-suitable cases follow Superpowers `test-driven-development`',
+      );
       expect(enBuild).toContain(
         'use the Skill tool to load the Superpowers `requesting-code-review` skill',
       );
@@ -960,6 +983,8 @@ describe('skills', () => {
       expect(enVerify).toContain('CRITICAL or IMPORTANT failures must be fixed');
       expect(enVerify).toContain('skipping fix to accept all is not allowed');
       expect(enVerify).toContain('Lightweight code review');
+      expect(enVerify).toContain('review_skills');
+      expect(enVerify).toContain('load before code review');
       expect(enVerify).toContain(
         'use the Skill tool to load the Superpowers `requesting-code-review` skill',
       );
@@ -1229,6 +1254,8 @@ describe('skills', () => {
       );
       expect(zhDispatch).toContain('当 `review_mode: thorough` 时，不执行每 task 双审查');
       expect(zhDispatch).toContain('当 `review_mode: off` 时');
+      expect(zhDispatch).toContain('reviewer prompt 必须先加载项目配置中的 `review_skills`');
+      expect(zhDispatch).toContain('不得加载 `context_skills` 作为审查规则');
       expect(zhDispatch).toContain(
         '"$COMET_BASH" "$COMET_STATE" task-checkoff "$PLAN_FILE" "$PLAN_TASK_TEXT"',
       );
@@ -1294,8 +1321,14 @@ describe('skills', () => {
       expect(enDispatch).toContain('plan, OpenSpec task, and subagent progress checkpoint');
       expect(enDispatch).toContain('openspec/changes/<name>/.comet/subagent-progress.md');
       expect(enDispatch).toContain('final-review | final-fix');
+      expect(enDispatch).toContain('selected `review_mode`');
       expect(enDispatch).toContain('current review-fix round');
       expect(enDispatch).toContain('review stages already passed');
+      expect(enDispatch).toContain('When `review_mode: standard`');
+      expect(enDispatch).toContain('When `review_mode: thorough`');
+      expect(enDispatch).toContain('When `review_mode: off`');
+      expect(enDispatch).toContain('reviewer prompt must first load the project-configured `review_skills`');
+      expect(enDispatch).toContain('must not load `context_skills` as review rules');
       expect(enDispatch).toContain(
         'all tasks are checked and the checkpoint stage is `final-review` or `final-fix`',
       );
@@ -1404,6 +1437,7 @@ describe('skills', () => {
       );
 
       expect(stateScript).toContain('review_mode: $review_mode');
+      expect(stateScript).toContain('local value="thorough"');
       expect(stateScript).toContain('review_mode)');
       expect(stateScript).toContain('validate_enum "$value" "off" "standard" "thorough"');
       expect(stateScript).toContain('review_mode must be selected before leaving build');

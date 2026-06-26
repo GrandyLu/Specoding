@@ -74,11 +74,17 @@ fi
 
 继续或开始修改前，按 `comet/reference/dirty-worktree.md` 协议处理未提交改动。若归因后发现范围超出 tweak，按本文件“升级条件”处理。
 
+开始修改前生成 tweak CodeGraph 上下文：
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" tweak "<change-name>"
+```
+
 **立即执行：** 按 tasks.md 逐个执行任务：
 
 1. 读取 `openspec/changes/<name>/tasks.md`，获取未完成任务列表
 2. 对每个未完成任务：
-   - 根据任务描述修改目标文件
+   - 根据任务描述和 CodeGraph Context 修改目标文件；只读取/修改 CodeGraph 指向或任务明确要求的文件，不得全量扫描仓库
    - 运行项目格式化命令（如 `mvn spotless:apply`、`npm run format` 等）
    - 运行相关测试确认通过
    - 将 tasks.md 中对应 `- [ ]` 勾选为 `- [x]`

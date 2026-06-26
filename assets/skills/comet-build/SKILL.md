@@ -30,7 +30,15 @@ Proceed to Step 1 after verification passes. The script outputs specific failure
 
 **Idempotency**: All build phase operations can be safely re-executed. Read `.comet.yaml` `phase` field to confirm still in build, read plan header `base-ref`, then use `grep -n '\- \[ \]' tasks.md | head -1` to find the first unchecked task. Already-committed tasks must not be re-committed.
 
+**OpenSpec → Superpowers consistency**: On build entry and exit, guard checks that the Design Doc frontmatter `canonical_spec_hash` still equals the current OpenSpec handoff hash. If OpenSpec artifacts changed after the Design Doc was generated, rerun `comet-handoff.sh` and refresh the Design Doc before continuing; do not plan or implement from a stale Superpowers design.
+
 ### 1. Create Plan (Subagent Offload)
+
+First generate plan-phase CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" plan "<change-name>"
+```
 
 Create the implementation plan through a subagent, avoiding planning skill occupying main session context. Plan files and execution feedback must use the language of the user request that triggered this workflow.
 
@@ -38,7 +46,7 @@ Create the implementation plan through a subagent, avoiding planning skill occup
 
 You are an implementation planning expert. Create an implementation plan based on the following inputs:
 
-1. **Immediately execute:** Use the Skill tool to load the Superpowers `writing-plans` skill. Skipping this step is prohibited. After the skill loads, ARGUMENTS must include: `Language: Use the language of the user request that triggered this workflow`
+1. **Immediately execute:** Use the Skill tool to load the Superpowers `writing-plans` skill. Skipping this step is prohibited. After the skill loads, ARGUMENTS must include: `Language: Use the language of the user request that triggered this workflow`; `CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the /comet CodeGraph Code Evidence Rule`; `Test Cases: openspec/changes/<name>/test-cases.md. Follow the /comet Verification Matrix Rule; every implementation task must link to corresponding verification items`.
 2. Read the Design Doc (technical design document under `docs/superpowers/specs/`)
 3. Read `openspec/changes/<name>/tasks.md` (task boundaries)
 4. Follow the skill's guidance to create the plan
@@ -46,6 +54,7 @@ You are an implementation planning expert. Create an implementation plan based o
 Plan requirements:
 - Save to `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`
 - Reference design document, break down into executable tasks
+- Reference `openspec/changes/<name>/test-cases.md` and state each task's verification method
 - **Plan file header must contain associated metadata**:
 
 ```yaml
@@ -138,9 +147,9 @@ Plan has been written to the current branch. Before starting execution, **ask th
 - Task count ≤ 2 and no cross-module dependencies → Recommend B
 - From hotfix path → Recommend B
 
-This is a user decision point. **Must follow the `comet/reference/decision-point.md` protocol to pause and wait for the user to explicitly choose isolation method, execution method, and TDD mode**. Must not choose `branch` or `worktree` based on recommendation rules, and must not choose the execution method or TDD mode based on recommendation rules. Recommendation rules are for suggestion only, not a substitute for user confirmation.
+This is a user decision point. **Must follow the `comet/reference/decision-point.md` protocol to pause and wait for the user to explicitly choose isolation method and execution method**. `tdd_mode` defaults to `tdd` and `review_mode` defaults to `thorough` for full workflows; only change them when the user explicitly asks to override the defaults. Must not choose `branch` or `worktree` based on recommendation rules, and must not choose the execution method based on recommendation rules. Recommendation rules are for suggestion only, not a substitute for user confirmation.
 
-After user selection, update `isolation`, execution method, and TDD mode fields:
+After user selection, update `isolation` and execution method fields:
 
 ```bash
 "$COMET_BASH" "$COMET_STATE" set <name> isolation <branch|worktree>
@@ -152,18 +161,34 @@ After user selection, update `isolation`, execution method, and TDD mode fields:
 
 **TDD Mode**:
 
+Full workflows default to `tdd`. Ask only if the user wants to override this default.
+
 | Option | Meaning | Applicable Scenario |
 |--------|---------|---------------------|
-| `tdd` | Write a failing test first for each task, then implement | Recommended. Changes involving business logic, new features, APIs |
-| `direct` | Implement directly, no enforced TDD flow | Changes that don't need test coverage, or user chooses to skip tests and write code directly. hotfix/tweak presets default to `direct` |
+| `tdd` | Write a failing test first for each task, then implement | Default for full workflows. Changes involving business logic, new features, APIs |
+| `direct` | Implement directly, no enforced TDD flow | Only when the user explicitly chooses to skip enforced TDD. hotfix/tweak presets default to `direct` |
 
-Run `"$COMET_BASH" "$COMET_STATE" set <name> tdd_mode <tdd|direct>`
+If the user overrides the default, run `"$COMET_BASH" "$COMET_STATE" set <name> tdd_mode <tdd|direct>`.
+
+**Code Review Mode**:
+
+Full workflows default to `thorough`. Ask only if the user wants to override this default.
+
+| Option | Meaning | Applicable Scenario |
+|--------|---------|---------------------|
+| `off` | Do not automatically dispatch code review | Documentation, configuration, copy-only, or explicitly low-risk work |
+| `standard` | Run one final lightweight code review after tasks complete; if issues are found, allow at most one automatic fix round before returning to the user | Normal low-to-medium risk changes |
+| `thorough` | Run combined reviews by batch or risk boundary, then one final full review | Default for full workflows. High-risk, multi-module, architecture, or security-sensitive changes |
+
+If the user overrides the default, run `"$COMET_BASH" "$COMET_STATE" set <name> review_mode <off|standard|thorough>`.
 
 `isolation` is a script-enforced hard constraint. Full workflow init may temporarily leave it as `null`, but only before this step. If it remains `null`, both the `build → verify` guard and `comet-state transition build-complete` will fail.
 
 `subagent_dispatch` is a script-enforced hard constraint. `build_mode: subagent-driven-development` requires `subagent_dispatch: confirmed` before leaving the build phase, otherwise both `comet-guard.sh build --apply` and `comet-state transition build-complete` will fail.
 
-`tdd_mode` is a script-enforced hard constraint. Full workflow must have `tdd_mode` selected as `tdd` or `direct` before leaving the build phase, otherwise both `comet-guard.sh build --apply` and `comet-state transition build-complete` will fail.
+`tdd_mode` is a script-enforced hard constraint. Full workflow init defaults to `tdd`; before leaving the build phase it must still be `tdd` or `direct`, otherwise both `comet-guard.sh build --apply` and `comet-state transition build-complete` will fail.
+
+`review_mode` is a script-enforced hard constraint. Full workflow init defaults to `thorough`; before leaving the build phase it must still be `off`, `standard`, or `thorough`, otherwise both `comet-guard.sh build --apply` and `comet-state transition build-complete` will fail. Old state files without this field may continue through the compatibility path, but recovery should write the field.
 
 `build_mode` defaults to `direct` only for hotfix/tweak presets. Full workflow must not default to `direct`. Use it only when the user explicitly asks to bypass the plan execution skills and you record an explicit override:
 
@@ -200,6 +225,27 @@ git commit -m "chore: add implementation plan"
 
 **Execute plan**: Must handle execution according to the actual runtime of `build_mode`.
 
+Before loading `subagent-driven-development` or `executing-plans`, refresh build-phase CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
+```
+
+Before loading the execution skill, read the project config `context_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`). implementation phases load only `context_skills`; these skills should provide component-library rules, development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other implementation constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue execution, but do not claim the implementation followed project-specific constraints that were not provided. code review phases load only `review_skills`; do not treat `context_skills` as review rubrics.
+
+**Verification Ledger Handoff (Superpowers + Comet)**:
+
+`test-cases.md` is only a verification ledger: it records scenarios, related tasks, verification methods, pass criteria, evidence locations, and actual results. Do not copy the flow of Superpowers `test-driven-development` or `verification-before-completion` here; those flows are executed by the corresponding Superpowers skills. Comet only requires writing back concise summaries of the evidence they produce.
+
+When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint, CodeGraph constraint, and verification matrix constraint:
+
+```text
+Language: Use the language of the user request that triggered this workflow.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule.
+Test Cases: openspec/changes/<name>/test-cases.md. Confirm, supplement, or correct corresponding verification items according to the `/comet` Verification Matrix Rule.
+Evidence Ledger: do not copy TDD or before-completion verification flow; only write actual evidence summaries from Superpowers skills and project commands back to `test-cases.md`.
+```
+
 - `build_mode: executing-plans`: **Immediately execute:** Use the Skill tool to load the Superpowers `executing-plans` skill. Skipping this step is prohibited. If the skill is unavailable, stop the process and prompt to install or enable the corresponding skill; do not substitute with normal conversation. After the skill loads, ARGUMENTS must include the same Language constraint as Step 1: `Language: Use the language of the user request that triggered this workflow`. Execute according to plan.
 - `build_mode: subagent-driven-development`: The main session only coordinates and must not write implementation code directly. **Immediately execute:** Use the Skill tool to load the Superpowers `subagent-driven-development` skill. After the skill loads, read `comet/reference/subagent-dispatch.md` for Comet-specific extensions (real background dispatch, task isolation, checkoff verification, TDD constraints, continuous execution, context recovery) and apply them alongside the skill's workflow. If they conflict, the more specific Comet extensions take precedence.
 - If the current platform has no real background agent dispatch capability, must pause and wait for the user to choose main window execution instead. After the user chooses, must run `"$COMET_BASH" "$COMET_STATE" set <name> build_mode executing-plans`, then follow the `build_mode: executing-plans` branch to load the Superpowers `executing-plans` skill. Must not continue executing tasks before the user explicitly chooses.
@@ -212,12 +258,14 @@ If `tdd_mode: tdd`:
 
 If `tdd_mode: direct`: Follow normal flow, no enforced TDD.
 
+During execution, complete tasks.md checkboxes, update related `test-cases.md` verification methods/pass criteria/evidence, and commit code after each task completion.
+
 **`executing-plans` review gate**:
 
-When `build_mode` is `executing-plans`, after all planned tasks are complete and before running the build → verify phase guard, must use the Skill tool to load the Superpowers `requesting-code-review` skill and request code review at least once.
+When `build_mode` is `executing-plans` and `review_mode` is `standard` or `thorough`, after all planned tasks are complete and before running the build → verify phase guard, must use the Skill tool to load the Superpowers `requesting-code-review` skill and request code review at least once. Code review phases load only `review_skills`: before loading `requesting-code-review`, read the project config `review_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`) and load each as code review rules; do not load these review-only skills during implementation. When `review_mode: off`, skip automatic code review, do not load `requesting-code-review` or `review_skills`, and record the skip reason in a verification report draft or tasks.md.
 
 Requirements:
-- the `requesting-code-review` skill must be loaded before `"$COMET_BASH" "$COMET_GUARD" <change-name> build --apply`
+- when `review_mode` is `standard` or `thorough`, the `requesting-code-review` skill must be loaded before `"$COMET_BASH" "$COMET_GUARD" <change-name> build --apply`
 - if `requesting-code-review` skill is unavailable, skip the review gate but must record `<!-- review skipped: skill unavailable -->` in tasks.md, then continue guard transition
 - CRITICAL review findings (security vulnerabilities, data loss risk, build/test failures) must be fixed first and must not be carried into verify
 - if non-CRITICAL review findings are accepted, record the acceptance reason and impact scope in tasks.md, the commit body, a verification report draft, or another durable artifact
@@ -237,6 +285,13 @@ When the initial spec is found incomplete during implementation, handle by scale
 | Small | Missing acceptance scenarios, edge cases | Directly edit delta spec + design.md, append tasks.md tasks |
 | Medium | Interface changes, new components, data flow changes | **Must use the current platform's available user input/confirmation mechanism to pause and wait for the user to explicitly confirm**, then must use Skill tool to load the Superpowers `brainstorming` skill to update Design Doc + delta spec |
 | Large | Brand-new capability requirements | **Must use the current platform's available user input/confirmation mechanism to pause and wait for the user to explicitly confirm the split**; after user confirms, create independent change through `/comet-open` |
+
+When loading `brainstorming` for a medium-scale Spec incremental update, ARGUMENTS must include the same Language constraint as Step 1:
+
+```text
+Language: Use the language of the user request that triggered this workflow.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule to determine the expanded impact area.
+```
 
 **50% Threshold Determination**: Using initial task count in tasks.md as baseline, if new tasks exceed half of that total, it's considered outside original plan scope, **must follow the `comet/reference/decision-point.md` protocol to pause and wait for the user to decide whether to split into a new change**.
 
@@ -265,12 +320,14 @@ Build is the longest phase and may span many tasks. To support resume after cont
 ## Exit Conditions
 
 - All tasks.md checked
+- `test-cases.md` completed for this change, with every completed task linked to at least one verification case or an explicit not-applicable rationale
+- For automatable feature work, bug fixes, refactoring, or behavior changes, the Skill tool has been used to load the Superpowers `test-driven-development` skill and concise RED/GREEN/REFACTOR evidence from that skill has been recorded in task commit notes or `test-cases.md`
 - Code committed
 - Project-specific build/tests explicitly run and pass; do not rely only on guard auto-detection
 - `isolation` has been written as `branch` or `worktree`
 - `build_mode` has been written as `subagent-driven-development`, `executing-plans`, or `direct` with explicit override; if `subagent-driven-development`, `subagent_dispatch` must be `confirmed`
 - `tdd_mode` has been written as `tdd` or `direct`
-- If `build_mode` is `executing-plans`, the Skill tool has been used to load the Superpowers `requesting-code-review` skill and request code review at least once, and CRITICAL review findings have been fixed or acceptance rationale for non-CRITICAL review findings has been recorded
+- If `review_mode` is `standard` or `thorough`, code review has been completed according to the selected mode, and CRITICAL review findings have been fixed or acceptance rationale for non-CRITICAL review findings has been recorded; if `review_mode: off`, the automatic code-review skip reason has been recorded in a durable artifact
 - **Phase guard**: Run `"$COMET_BASH" "$COMET_GUARD" <change-name> build --apply`; after all PASS, state advances to `phase: verify`
 
 Guard reads project command configuration first:

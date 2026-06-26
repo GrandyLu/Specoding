@@ -1,5 +1,5 @@
 {
-  "version": "0.3.8",
+  "version": "0.3.12",
   "skills": [
     "comet/SKILL.md",
     "comet/reference/auto-transition.md",
@@ -16,6 +16,7 @@
     "comet/scripts/comet-handoff.sh",
     "comet/scripts/comet-archive.sh",
     "comet/scripts/comet-yaml-validate.sh",
+    "comet/scripts/comet-codegraph-context.sh",
     "comet/scripts/comet-hook-guard.sh",
     "comet-open/SKILL.md",
     "comet-design/SKILL.md",
@@ -23,7 +24,8 @@
     "comet-verify/SKILL.md",
     "comet-archive/SKILL.md",
     "comet-hotfix/SKILL.md",
-    "comet-tweak/SKILL.md"
+    "comet-tweak/SKILL.md",
+    "comet-scan/SKILL.md"
   ],
   "rules": [
     "comet/rules/comet-phase-guard.md"
@@ -35,7 +37,7 @@
     }
   },
   "languages": [
-    { "id": "en", "name": "English", "skillsDir": "skills" },
-    { "id": "zh", "name": "中文", "skillsDir": "skills-zh" }
+    { "id": "zh", "name": "中文", "skillsDir": "skills-zh" },
+    { "id": "en", "name": "English", "skillsDir": "skills" }
   ]
 }

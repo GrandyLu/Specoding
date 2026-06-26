@@ -153,6 +153,7 @@ archived=$(field_value "archived")
 direct_override=$(field_value "direct_override")
 design_doc=$(field_value "design_doc")
 plan=$(field_value "plan")
+test_cases=$(field_value "test_cases")
 handoff_context=$(field_value "handoff_context")
 handoff_hash=$(field_value "handoff_hash")
 
@@ -188,6 +189,12 @@ if [ -n "$plan" ] && [ "$plan" != "null" ]; then
   fi
 fi
 
+if [ -n "$test_cases" ] && [ "$test_cases" != "null" ]; then
+  if [ ! -s "$test_cases" ]; then
+    fail "test_cases='$test_cases' does not exist on disk or is empty"
+  fi
+fi
+
 if [ -n "$handoff_context" ] && [ "$handoff_context" != "null" ]; then
   if [ ! -f "$handoff_context" ]; then
     fail "handoff_context='$handoff_context' does not exist on disk"
@@ -201,7 +208,7 @@ if [ -n "$handoff_hash" ] && [ "$handoff_hash" != "null" ]; then
 fi
 
 # --- Unknown keys check ---
-KNOWN_KEYS="workflow phase context_compression design_doc plan build_mode build_pause subagent_dispatch tdd_mode review_mode isolation verify_mode auto_transition verify_result verification_report branch_status verified_at created_at archived direct_override build_command verify_command handoff_context handoff_hash base_ref"
+KNOWN_KEYS="workflow phase context_compression design_doc plan test_cases build_mode build_pause subagent_dispatch tdd_mode review_mode isolation verify_mode auto_transition verify_result verification_report branch_status verified_at created_at archived direct_override build_command verify_command handoff_context handoff_hash base_ref"
 while IFS=: read -r key _; do
   key="${key// /}"
   [ -z "$key" ] && continue

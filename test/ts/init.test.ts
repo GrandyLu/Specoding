@@ -70,7 +70,11 @@ describe('init command helpers', () => {
       expect(config).toContain('# context_compression: off | beta');
       expect(config).toContain('context_compression: off');
       expect(config).toContain('# review_mode: off | standard | thorough');
-      expect(config).toContain('review_mode: off');
+      expect(config).toContain('review_mode: thorough');
+      expect(config).toContain('# context_skills: project skills loaded before design/build implementation');
+      expect(config).toContain('context_skills: []');
+      expect(config).toContain('# review_skills: project skills loaded only before code review');
+      expect(config).toContain('review_skills: []');
       expect(config).toContain('# auto_transition: true | false');
       expect(config).toContain('auto_transition: true');
     } finally {

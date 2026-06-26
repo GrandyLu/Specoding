@@ -394,7 +394,8 @@ build_mode: subagent-driven-development
 build_pause: null
 isolation: branch
 verify_mode: null
-tdd_mode: null
+tdd_mode: tdd
+review_mode: thorough
 subagent_dispatch: null
 design_doc: docs/superpowers/specs/YYYY-MM-DD-topic-design.md
 plan: docs/superpowers/plans/YYYY-MM-DD-feature.md
@@ -410,8 +411,8 @@ handoff_context: openspec/changes/<name>/.comet/handoff/design-context.json
 handoff_hash: <sha256>
 ```
 
-In full workflow, `build_mode`, `build_pause`, `isolation`, `verify_mode`, `tdd_mode`, and `subagent_dispatch` may
-temporarily be `null`; `build_mode` and `isolation` must be resolved before `build → verify`. `auto_transition` controls automatic vs manual skill invocation after phase completion — see [AUTO-TRANSITION.md](docs/AUTO-TRANSITION.md). `build_pause` records an internal build-phase pause point:
+In full workflow, `build_mode`, `build_pause`, `isolation`, `verify_mode`, and `subagent_dispatch` may
+temporarily be `null`; `tdd_mode` defaults to `tdd`, `review_mode` defaults to `thorough`, and `build_mode` / `isolation` must be resolved before `build → verify`. `auto_transition` controls automatic vs manual skill invocation after phase completion — see [AUTO-TRANSITION.md](docs/AUTO-TRANSITION.md). `build_pause` records an internal build-phase pause point:
 `null` means no pause, while `plan-ready` means the plan has been generated and the user paused before choosing
 isolation and execution mode. It is not an execution mode and must not be written into `build_mode`.
 `verification_report` stays `null` until verification writes a report, and `verify-pass` requires that report to exist
@@ -420,6 +421,16 @@ is only needed for full-workflow direct builds, project commands may be absent u
 `handoff_context` / `handoff_hash` are recorded by `comet-handoff.sh` before leaving design. Projects can configure
 `build_command` / `verify_command` in the change or repo root, and guard will run those commands first and print failure
 output.
+
+Project-level `.comet/config.yaml` controls defaults and skill hooks that are not per-change state:
+
+```yaml
+context_compression: off
+review_mode: thorough
+context_skills: []   # design/build implementation context, for example component-library skills
+review_skills: []    # review-only rules loaded before code review
+auto_transition: true
+```
 
 </details>
 
@@ -471,7 +482,7 @@ Comet ensures agent execution reliability through automated state transitions:
 ```
 your-project/
 ├── .comet/
-│   └── config.yaml              # Project-level global config (context_compression, auto_transition, etc.)
+│   └── config.yaml              # Project config (context_skills, review_skills, review_mode, etc.)
 ├── .claude/skills/              # Platform skills dir (Comet + OpenSpec + Superpowers)
 │   ├── comet/SKILL.md
 │   │   └── scripts/

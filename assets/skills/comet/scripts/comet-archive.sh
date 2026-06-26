@@ -295,7 +295,19 @@ else
   fi
 fi
 
-# --- Step 8: Print summary ---
+# --- Step 9: Sync CodeGraph index ---
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  step_dry_run "Would sync CodeGraph index"
+else
+  if codegraph sync; then
+    step_ok "CodeGraph index synced"
+  else
+    step_fail "CodeGraph index synced"
+  fi
+fi
+
+# --- Step 10: Print summary ---
 
 echo "" >&2
 if [ "$DRY_RUN" -eq 1 ]; then

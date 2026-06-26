@@ -387,17 +387,28 @@ build_command: null
 verify_command: null
 handoff_context: openspec/changes/<name>/.comet/handoff/design-context.json
 handoff_hash: <sha256>
-tdd_mode: null
+tdd_mode: tdd
+review_mode: thorough
 subagent_dispatch: null
 ```
 
-full workflow 初始化时 `build_mode`、`build_pause`、`isolation`、`verify_mode`、`tdd_mode` 和 `subagent_dispatch` 可以暂时为
-`null`；进入 `build → verify` 前必须完成 `build_mode` 与 `isolation` 决策并写入合法值。`auto_transition` 控制阶段完成后是否自动触发下一个 Skill — 详见 [AUTO-TRANSITION.md](docs/AUTO-TRANSITION.md)。`build_pause` 记录 build 阶段内部暂停点：
+full workflow 初始化时 `build_mode`、`build_pause`、`isolation`、`verify_mode` 和 `subagent_dispatch` 可以暂时为
+`null`；`tdd_mode` 默认 `tdd`，`review_mode` 默认 `thorough`，进入 `build → verify` 前必须完成 `build_mode` 与 `isolation` 决策并写入合法值。`auto_transition` 控制阶段完成后是否自动触发下一个 Skill — 详见 [AUTO-TRANSITION.md](docs/AUTO-TRANSITION.md)。`build_pause` 记录 build 阶段内部暂停点：
 `null` 表示无暂停，`plan-ready` 表示 plan 已生成，用户在选择隔离方式和执行方式前暂停。它不是执行方式，不得写入 `build_mode`。
 `verification_report` 在验证报告生成前保持 `null`，`verify-pass` 要求该报告文件存在且 `branch_status: handled`。示例中
 `archived` 之后的字段是可选字段或脚本派生字段：`direct_override` 只在 full workflow 直接构建时需要，项目命令未配置时可以不存在，
 `handoff_context` 和 `handoff_hash` 由 `comet-handoff.sh` 在离开 design 阶段前写入。项目可在 change 或仓库根配置中设置
 `build_command` / `verify_command`，guard 会优先运行并打印失败输出。
+
+项目级 `.comet/config.yaml` 控制默认值和非 change 状态的 skill 挂载点：
+
+```yaml
+context_compression: off
+review_mode: thorough
+context_skills: []   # design/build 实现上下文，例如组件库 skill
+review_skills: []    # 只在代码审查前加载的 review 规则
+auto_transition: true
+```
 
 </details>
 
@@ -454,7 +465,7 @@ Comet 通过自动化状态转换确保 agent 执行可靠性：
 ```
 your-project/
 ├── .comet/
-│   └── config.yaml              # 项目级全局配置（context_compression、auto_transition 等）
+│   └── config.yaml              # 项目配置（context_skills、review_skills、review_mode 等）
 ├── .claude/skills/              # 平台技能目录（Comet + OpenSpec + Superpowers）
 │   ├── comet/SKILL.md
 │   │   └── scripts/

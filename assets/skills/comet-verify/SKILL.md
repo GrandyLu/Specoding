@@ -36,6 +36,12 @@ Proceed to Step 1 after verification passes. The script outputs specific failure
 
 ### 1. Scale Assessment
 
+First generate verification-phase CodeGraph context:
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" verify "<change-name>"
+```
+
 Execute scale assessment:
 
 ```bash
@@ -112,18 +118,20 @@ After the skill loads, follow the `verify_mode` branch:
 
 ### 2a. Lightweight Verification (Small Changes)
 
-Run these 6 checks:
+Run these 8 checks:
 
 1. All tasks.md tasks completed `[x]`
 2. Changed files match tasks.md descriptions (`git diff --stat` / `git diff --cached --stat` / `git diff --stat <base-ref>...HEAD` compared against tasks content)
-3. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
-4. Related tests pass
-5. No obvious security issues (no hardcoded keys, no new unsafe operations)
-6. Lightweight code review passes: use the Skill tool to load the Superpowers `requesting-code-review` skill and request a lightweight review that checks only correctness, security, and edge cases
+3. According to the `/comet` Verification Matrix Rule, test/verification cases related to this change in `openspec/changes/<name>/test-cases.md` have results or explicit uncovered rationale
+4. Follow the `/comet` CodeGraph Code Evidence Rule and use `$COMET_CODEGRAPH_CONTEXT_FILE` to verify the affected scope
+5. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
+6. Related test or verification evidence passes; evidence type follows the `/comet` Verification Matrix Rule
+7. No obvious security issues (no hardcoded keys, no new unsafe operations)
+8. Lightweight code review passes: when automatic code review is enabled, load before code review the project config `review_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`) as extra review rules; then use the Skill tool to load the Superpowers `requesting-code-review` skill and request a lightweight review that checks only correctness, security, and edge cases; do not use `context_skills` as review rubrics
 
 The lightweight code review input should be limited to this change's diff, tasks.md, and necessary test results; the review scope covers implementation correctness, security risk, and edge cases only, and does not perform spec coverage, Design Doc consistency, or drift checks. If the review finds CRITICAL or IMPORTANT issues, treat verification as failed and enter Step 1b.
 
-**Pass criteria**: All 6 items OK, no CRITICAL or IMPORTANT issues.
+**Pass criteria**: All 8 items OK, no CRITICAL or IMPORTANT issues.
 
 **When not passing**: Report failures, enter Step 1b verification failure decision blocking point. Only after user confirms fix, execute the following command to record failure and roll back to build phase, then invoke `/comet-build` to fix:
 
@@ -132,7 +140,7 @@ The lightweight code review input should be limited to this change's diff, tasks
 "$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail
 ```
 
-**Report format**: Brief table listing 6 check results + PASS/FAIL.
+**Report format**: Brief table listing 8 check results + PASS/FAIL, plus evidence summary for each scenario in `test-cases.md`.
 
 **Skipped items** (not checked in lightweight verification):
 - spec scenario coverage
@@ -146,14 +154,21 @@ When scale assessment result is "large":
 
 **Immediately execute:** Use the Skill tool to load the `openspec-verify-change` skill. Skipping this step is prohibited.
 
+When invoking `openspec-verify-change`, ARGUMENTS must include:
+
+```text
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule to verify implementation evidence.
+```
+
 After the skill loads, follow its guidance to verify. Check items:
 1. All tasks.md tasks completed (`[x]`)
-2. Implementation matches `openspec/changes/<name>/design.md` high-level design decisions
-3. Implementation matches Design Doc (technical design documents under `docs/superpowers/specs/`)
-4. All capability spec scenarios pass
-5. proposal.md goals are satisfied
-6. No contradictions between delta spec and design doc (if Build phase had incremental spec modifications, check if design doc has corresponding records)
-7. Associated design documents under `docs/superpowers/specs/` are locatable (file exists and is related to current change)
+2. Every test/verification case in `openspec/changes/<name>/test-cases.md` has a result, evidence, or explicit uncovered rationale
+3. Implementation matches `openspec/changes/<name>/design.md` high-level design decisions
+4. Implementation matches Design Doc (technical design documents under `docs/superpowers/specs/`)
+5. All capability spec scenarios pass
+6. proposal.md goals are satisfied
+7. No contradictions between delta spec and design doc (if Build phase had incremental spec modifications, check if design doc has corresponding records)
+8. Associated design documents under `docs/superpowers/specs/` are locatable (file exists and is related to current change)
 
 When verification does not pass: report missing items, enter Step 1b verification failure decision blocking point. Only after user confirms fix, execute the following command to record failure and roll back to build phase, then invoke `/comet-build` to supplement:
 
@@ -167,6 +182,10 @@ When verification does not pass: report missing items, enter Step 1b verificatio
   - Option A: Append "Implementation Divergence" section to design doc recording deviation reason. Option A is a verify phase allowed artifact; after writing, must not re-trigger Step 1b dirty-worktree decision due to that design doc change
   - Option B: After user selects B, run `"$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail`, then invoke `/comet-build`; `/comet-build`'s Spec Incremental Update rules will load the Superpowers `brainstorming` skill to update Design Doc + delta spec
   - Option C: Confirm deviation is acceptable, continue verification (design doc will be marked as `superseded-by-main-spec` during archiving)
+
+### 2c. Fresh Verification Before Completion (Superpowers)
+
+Before writing a PASS verification report, setting `branch_status: handled`, running the verify guard, invoking `finishing-a-development-branch`, committing, creating a PR, or claiming completion, must use the Skill tool to load the Superpowers `verification-before-completion` skill. Comet verify owns phase exit; this skill owns fresh verification evidence. Record the just-run commands, exit codes, key output summaries, and conclusions in the verification report. Do not use stale logs, speculative language, or "should pass" as completion evidence.
 
 ### 3. Finishing (Superpowers)
 
@@ -190,6 +209,8 @@ This is a user decision point. **Must follow the `comet/reference/decision-point
 
 Verification report must be saved to disk and recorded in `.comet.yaml`; after branch handling completes, state fields must also be written. Do not manually set `verify_result: pass`; use guard for auto-transition.
 
+The verification report must reference `openspec/changes/<name>/test-cases.md` and record actual evidence for each verification case: command output, report path, screenshot path, manual verification note, visual-check conclusion, or other traceable material. Do not mark frontend verification as missing merely because it has no automated unit-test code; if the evidence is traceable to the pass criteria, it can count as verification evidence for this change.
+
 ```bash
 mkdir -p docs/superpowers/reports
 # Write verification conclusions to report file, e.g.:
@@ -202,6 +223,7 @@ mkdir -p docs/superpowers/reports
 ## Exit Conditions
 
 - Verification report passed
+- The Skill tool has been used to load the Superpowers `verification-before-completion` skill, and the verification report records fresh verification evidence (commands, exit codes, key output summaries, and conclusions)
 - Branch handled
 - `verification_report` in `.comet.yaml` points to an existing verification report file
 - `branch_status: handled` in `.comet.yaml`

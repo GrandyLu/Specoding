@@ -47,7 +47,7 @@
 
 agent 回报状态必须为 `DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT`，并包含实现内容、测试结果、提交哈希、变更文件和顾虑。进入审查前，主会话必须确认提交和文件在当前工作树可见；若平台使用隔离副本，先拉取或合并变更。
 
-当 `review_mode` 需要 reviewer 时，每个 reviewer prompt 必须包含完整 task、实现提交或差异以及 RED/GREEN 证据（`tdd_mode: tdd` 时）。reviewer 不得只依据 implementer 的总结进行审查。
+当 `review_mode` 需要 reviewer 时，每个 reviewer prompt 必须先加载项目配置中的 `review_skills`（优先 `.comet/config.yaml`，兼容 `openspec/comet.yaml`）作为审查规则；不得加载 `context_skills` 作为审查规则。reviewer prompt 必须包含完整 task、实现提交或差异以及 RED/GREEN 证据（`tdd_mode: tdd` 时）。reviewer 不得只依据 implementer 的总结进行审查。
 
 ### 2. Implementer 范围限制
 

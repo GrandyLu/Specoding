@@ -2,6 +2,30 @@
 
 All notable changes to @rpamis/comet will be documented in this file.
 
+## What's Changed [0.3.12] - 2026-06-26
+
+### Added
+
+- **Existing-project scan workflow**: Added the `/comet-scan` skill and bundled CodeGraph context script so existing repositories can build a CodeGraph index, generate `openspec/.comet/codegraph-context.md`, and use OpenSpec exploration to seed spec documentation before entering normal change workflows.
+- **Architecture Mermaid visualization**: Added architecture diagram generation during `comet init`, with `--skip-viz` for projects that want to skip `.codegraph/architecture.mmd` creation.
+- **Project skill configuration**: Added `context_skills` and `review_skills` defaults to project config so design/build implementation phases and code review phases can load separate project-specific guidance.
+
+### Changed
+
+- **CodeGraph sync guidance**: Updated archive and workflow skills so agents refresh CodeGraph context after spec/archive changes and treat CodeGraph evidence as an explicit project artifact.
+- **Full workflow quality defaults**: Full workflow changes now default to `tdd_mode: tdd` and `review_mode: thorough`, while hotfix/tweak presets keep their lighter direct/off defaults; English and Chinese build guidance now describe the same override and review-gate behavior.
+- **Project skill hook routing**: Clarified that `context_skills` load only during design/build execution context and `review_skills` load before code review, including subagent review paths.
+
+### Fixed
+
+- **Git hook portability**: Pre-commit now invokes the local `lint-staged` binary directly so GUI/IDE commit environments without global `pnpm` in `PATH` can still run the staged-file formatter.
+- **OpenSpec handoff consistency**: `comet-guard.sh` now validates Design Doc `canonical_spec_hash` against the current OpenSpec handoff hash, blocking stale Superpowers design docs when OpenSpec artifacts drift.
+
+### Tests
+
+- **CodeGraph and handoff regression coverage**: Added tests for `/comet-scan` assets, CodeGraph context script packaging, architecture diagram generation, `comet init --skip-viz`, project skill config defaults, and canonical handoff hash guard behavior.
+- **Project skill hook routing coverage**: Added regression checks that keep `context_skills` and `review_skills` separated across design, build, verify, and subagent review flows.
+
 ## What's Changed [0.3.11] - 2026-06-24
 
 ### Added

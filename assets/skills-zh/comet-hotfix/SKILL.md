@@ -80,6 +80,12 @@ fi
 
 继续或开始修改前，按 `comet/reference/dirty-worktree.md` 协议处理未提交改动。若归因后发现修复范围超出 hotfix，按本文件“升级条件”处理。
 
+开始修改前生成 hotfix CodeGraph 上下文：
+
+```bash
+"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" hotfix "<change-name>"
+```
+
 **立即执行：** 按 tasks.md 逐个执行任务：
 
 1. 读取 `openspec/changes/<name>/tasks.md`，获取未完成任务列表
@@ -104,7 +110,7 @@ fi
 **在运行 build guard 之前执行**，确保修复确实消除了问题根因：
 
 1. 读取 proposal.md 中的 bug 描述和根因
-2. 搜索验证问题代码不再存在
+2. 读取 `$COMET_CODEGRAPH_CONTEXT_FILE`，优先用 Relationship Analysis、Impact、Affected Tests 和 Targeted Source Excerpts 定位并验证根因相关代码
 3. 如根因未消除，回到 Step 2 继续修复（此时仍在 build 阶段，无需状态回退）
 
 **升级条件**：

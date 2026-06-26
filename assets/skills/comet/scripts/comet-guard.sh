@@ -594,6 +594,26 @@ design_doc_frontmatter_has() {
   ' "$design_doc" | grep -Eq "^${field}: ['\"]?${expected}['\"]?[[:space:]]*$"
 }
 
+design_doc_frontmatter_value() {
+  local design_doc="$1"
+  local field="$2"
+  awk -v field="$field" '
+    {
+      line = $0
+      sub(/^\357\273\277/, "", line)
+    }
+    !in_fm && line == "---" { in_fm = 1; next }
+    in_fm && line == "---" { exit }
+    in_fm && index(line, field ":") == 1 {
+      sub("^[^:]+:[[:space:]]*", "", line)
+      gsub(/^[\047"]|[\047"]$/, "", line)
+      sub(/[[:space:]]+$/, "", line)
+      print line
+      exit
+    }
+  ' "$design_doc"
+}
+
 design_doc_links_current_change() {
   local design_doc
   design_doc=$(yaml_field_value "design_doc" 2>/dev/null || true)
@@ -616,6 +636,31 @@ design_doc_declares_canonical_spec() {
   design_doc=$(yaml_field_value "design_doc" 2>/dev/null || true)
   [ -n "$design_doc" ] && [ "$design_doc" != "null" ] && [ -s "$design_doc" ] &&
     design_doc_frontmatter_has "$design_doc" "canonical_spec" "openspec"
+}
+
+design_doc_matches_current_handoff() {
+  local design_doc recorded_hash actual_hash
+  design_doc=$(yaml_field_value "design_doc" 2>/dev/null || true)
+  if [ -z "$design_doc" ] || [ "$design_doc" = "null" ] || [ ! -s "$design_doc" ]; then
+    echo "design_doc must point to an existing Superpowers Design Doc." >&2
+    return 1
+  fi
+
+  recorded_hash=$(design_doc_frontmatter_value "$design_doc" "canonical_spec_hash")
+  if [[ ! "$recorded_hash" =~ ^[a-f0-9]{64}$ ]]; then
+    echo "Design Doc frontmatter must include canonical_spec_hash with the OpenSpec handoff hash." >&2
+    echo "Next: regenerate or update the Superpowers Design Doc from the current comet-handoff.sh output." >&2
+    return 1
+  fi
+
+  actual_hash=$(compute_handoff_hash)
+  if [ "$recorded_hash" != "$actual_hash" ]; then
+    echo "OpenSpec artifacts changed after Superpowers Design Doc was written." >&2
+    echo "Design Doc canonical_spec_hash: $recorded_hash" >&2
+    echo "Current OpenSpec handoff hash: $actual_hash" >&2
+    echo "Next: rerun comet-handoff.sh and refresh the Superpowers Design Doc before continuing." >&2
+    return 1
+  fi
 }
 
 archived_is_true() {
@@ -666,6 +711,7 @@ guard_design() {
     check "Design Doc frontmatter links current change" design_doc_links_current_change
     check "Design Doc declares technical design role" design_doc_declares_technical_role
     check "Design Doc declares OpenSpec as canonical spec" design_doc_declares_canonical_spec
+    check "Design Doc records current OpenSpec handoff hash" design_doc_matches_current_handoff
   elif [ "$workflow" != "full" ]; then
     warn "  [WARN] No design_doc recorded in .comet.yaml (optional for hotfix/tweak)"
   fi
@@ -694,6 +740,11 @@ guard_build() {
   check "tasks.md all tasks checked" tasks_all_done
   check "Superpowers plan all tasks checked" plan_tasks_all_done
   check "proposal.md exists" file_nonempty "$CHANGE_DIR/proposal.md"
+  local design_doc
+  design_doc=$(yaml_field_value "design_doc" 2>/dev/null || true)
+  if [ -n "$design_doc" ] && [ "$design_doc" != "null" ]; then
+    check "Superpowers Design Doc matches current OpenSpec handoff" design_doc_matches_current_handoff
+  fi
   check "Build passes" build_passes
 }
 

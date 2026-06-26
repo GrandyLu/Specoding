@@ -28,6 +28,7 @@ type InitOptions = {
   json?: boolean;
   scope?: InstallScope;
   language?: string;
+  skipViz?: boolean;
 };
 
 type InstallStatus = 'installed' | 'skipped' | 'failed';
@@ -49,8 +50,8 @@ type ComponentPlan = {
 };
 
 const LANGUAGES: LanguageConfig[] = [
-  { id: 'en', name: 'English', skillsDir: 'skills' },
   { id: 'zh', name: '中文', skillsDir: 'skills-zh' },
+  { id: 'en', name: 'English', skillsDir: 'skills' },
 ];
 
 const COMET_BANNER = [
@@ -286,7 +287,8 @@ function displaySummary(results: PlatformResult[], scope: InstallScope, lang: st
   console.log(`\n  ${t(lang, 'getStarted')}`);
   console.log(`    ${t(lang, 'getStartedComet')}`);
   console.log(`    ${t(lang, 'getStartedHotfix')}`);
-  console.log(`    ${t(lang, 'getStartedTweak')}\n`);
+  console.log(`    ${t(lang, 'getStartedTweak')}`);
+  console.log(`    /comet-scan         — Index existing code and draft specs\n`);
 }
 
 export async function initCommand(targetPath: string, options: InitOptions = {}): Promise<void> {
@@ -305,6 +307,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
 
   const detected = await detectPlatforms(projectPath);
   const scope = await selectScope(options, lang);
+  let codegraphStatus: InstallStatus = 'skipped';
 
   const selectedPlatformIds = await selectPlatforms(detected, options, lang);
   if (selectedPlatformIds.length === 0) {
@@ -315,6 +318,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
             projectPath,
             scope,
             language: language.id,
+            codegraph: codegraphStatus,
             selectedPlatforms: [],
             results: [],
           },
@@ -486,15 +490,54 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
 
   if (shouldInstallCodegraph) {
     log(`\n  ${t(lang, 'installingCG')}`);
-    const cgGlobalStatus = await installCodegraph(projectPath, scope, true);
-    log(`  CodeGraph: ${cgGlobalStatus}`);
+    codegraphStatus = await installCodegraph(projectPath, scope, true);
+    log(`  CodeGraph: ${codegraphStatus}`);
     for (const r of results) {
-      r.codegraph = cgGlobalStatus;
+      r.codegraph = codegraphStatus;
     }
   } else if (!options.json && codegraphAlreadyIndexed) {
     log('\n  CodeGraph: skipped (existing .codegraph index detected)');
   } else if (!options.json) {
     log(`\n  CodeGraph: ${t(lang, 'cgSkippedByUser')}`);
+  }
+
+  if (
+    !options.json &&
+    !options.skipViz &&
+    scope === 'project' &&
+    (codegraphAlreadyIndexed || codegraphStatus === 'installed')
+  ) {
+    try {
+      const { generateArchitectureDiagram } = await import('../core/architecture-generator.js');
+      const result = await generateArchitectureDiagram(
+        projectPath,
+        !options.yes,
+        '.codegraph/architecture.mmd',
+      );
+
+      if (result.success) {
+        const layerNames = result.layers
+          .map((layer) => {
+            const names = {
+              layer1: 'Routes',
+              layer2: 'Components',
+              layer3: 'Shared',
+              callgraph: 'CallGraph',
+            };
+            return names[layer as keyof typeof names] || layer;
+          })
+          .join(', ');
+
+        log(`  Architecture: generated (${layerNames}, ${result.nodeCount} nodes)`);
+      } else {
+        log('  Architecture: generation failed (but CodeGraph init succeeded)');
+        for (const error of result.errors) {
+          console.warn(`    Warning: ${error}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`  Architecture: generation error - ${(error as Error).message}`);
+    }
   }
 
   if (scope === 'project') {
@@ -508,6 +551,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
           projectPath,
           scope,
           language: language.id,
+          codegraph: codegraphStatus,
           selectedPlatforms: selectedPlatformIds,
           results: results.map((result) => ({
             platform: result.platform.id,
