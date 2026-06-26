@@ -43,7 +43,7 @@ async function copyCometSkillsForPlatform(
   baseDir: string,
   platform: Platform,
   overwrite: boolean,
-  languageSkillsDir: string = 'skills-zh',
+  languageSkillsDir: string = 'skills',
   scope: InstallScope = 'project',
 ): Promise<{ copied: number; skipped: number }> {
   const assetsDir = getAssetsDir();
@@ -754,10 +754,6 @@ async function createWorkingDirs(projectPath: string): Promise<void> {
         'context_compression: off',
         '# review_mode: off | standard | thorough',
         'review_mode: off',
-        '# context_skills: project skills loaded before design/build implementation',
-        'context_skills: []',
-        '# review_skills: project skills loaded only before code review',
-        'review_skills: []',
         '# auto_transition: true | false',
         'auto_transition: true',
         '',

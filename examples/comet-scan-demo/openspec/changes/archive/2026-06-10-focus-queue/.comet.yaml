@@ -1,0 +1,19 @@
+workflow: full
+phase: archive
+build_mode: subagent-driven-development
+build_pause: null
+isolation: branch
+verify_mode: full
+auto_transition: true
+base_ref: 8f9a725c3bf56fb8df7c4fe342cf48749fd7ee1c
+design_doc: docs/superpowers/specs/2026-06-10-focus-queue-design.md
+plan: docs/superpowers/plans/2026-06-10-focus-queue.md
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-06-10-focus-queue-verify.md
+branch_status: handled
+created_at: 2026-06-10
+verified_at: 2026-06-10
+archived: true
+handoff_context: openspec/changes/focus-queue/.comet/handoff/design-context.json
+handoff_hash: 2dd0d95f12976800894716545256e336d115fe84b8308fab1a48b9f4c766e107
+build_command: npm test

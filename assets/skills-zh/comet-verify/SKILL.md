@@ -36,12 +36,6 @@ fi
 
 ### 1. 改动规模评估
 
-先生成验证阶段 CodeGraph 上下文：
-
-```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" verify "<change-name>"
-```
-
 执行规模评估：
 
 ```bash
@@ -116,20 +110,18 @@ CURRENT_HASH=$("$COMET_BASH" "$COMET_HANDOFF" <change-name> --hash-only 2>/dev/n
 
 ### 2a. 轻量验证（小改动）
 
-按以下 8 项进行检查：
+按以下 6 项进行检查：
 
 1. tasks.md 全部任务已完成 `[x]`
 2. 改动文件与 tasks.md 描述一致（`git diff --stat` / `git diff --cached --stat` / `git diff --stat <base-ref>...HEAD` 对照 tasks 内容）
-3. 按 `/comet` 的验证矩阵规则，`openspec/changes/<name>/test-cases.md` 中与本 change 相关的测试/验证用例均有结果或明确的未覆盖原因
-4. 按 `/comet` 的 CodeGraph 代码证据规则，使用 `$COMET_CODEGRAPH_CONTEXT_FILE` 复核改动影响面
-5. 编译通过（执行项目对应的构建命令，如 `npm run build`、`mvn compile`、`cargo build` 等）
-6. 相关测试或验证证据通过；证据类型按 `/comet` 的验证矩阵规则判定
-7. 无明显安全问题（无硬编码密钥、无新增 unsafe 操作）
-8. 代码审查策略：当 `review_mode: standard` 或 `thorough` 时，必须在代码审查前加载项目配置中的 `review_skills`（优先 `.comet/config.yaml`，兼容 `openspec/comet.yaml`），作为额外代码审视规则；然后使用 Skill 工具加载 Superpowers `requesting-code-review` 技能，请求只检查正确性、安全、边界条件的轻量代码审查；不得加载 `context_skills` 替代 review 规则；当 `review_mode: off` 时跳过自动代码审查，并在验证报告中记录跳过原因
+3. 编译通过（执行项目对应的构建命令，如 `npm run build`、`mvn compile`、`cargo build` 等）
+4. 相关测试通过
+5. 无明显安全问题（无硬编码密钥、无新增 unsafe 操作）
+6. 代码审查策略：当 `review_mode: standard` 或 `thorough` 时，必须使用 Skill 工具加载 Superpowers `requesting-code-review` 技能，请求只检查正确性、安全、边界条件的轻量代码审查；当 `review_mode: off` 时跳过自动代码审查，并在验证报告中记录跳过原因
 
 简化代码审查的输入应限定为本次改动 diff、tasks.md 和必要的测试结果；审查范围只覆盖实现正确性、安全风险和边界条件，不执行 spec 覆盖率、Design Doc 一致性或漂移检查。若审查发现 CRITICAL 或 IMPORTANT 问题，按验证失败处理并进入 Step 1b。`review_mode: off` 只跳过自动 code review，不跳过构建、测试、安全检查或异常调试协议。
 
-**通过标准**：8 项全部 OK，无 CRITICAL 或 IMPORTANT 问题。
+**通过标准**：6 项全部 OK，无 CRITICAL 或 IMPORTANT 问题。
 
 **不通过时**：报告失败项，进入 Step 1b 的验证失败决策阻塞点。用户选择修复后，才执行以下命令记录失败并回退到 build 阶段，然后调用 `/comet-build` 修复：
 
@@ -138,7 +130,7 @@ CURRENT_HASH=$("$COMET_BASH" "$COMET_HANDOFF" <change-name> --hash-only 2>/dev/n
 "$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail
 ```
 
-**报告格式**：简表列出 8 项检查结果 + PASS/FAIL，并附 `test-cases.md` 中每个场景的证据摘要。
+**报告格式**：简表列出 6 项检查结果 + PASS/FAIL。
 
 **跳过项**（不在轻量验证中检查）：
 - spec scenario 覆盖率
@@ -152,21 +144,14 @@ CURRENT_HASH=$("$COMET_BASH" "$COMET_HANDOFF" <change-name> --hash-only 2>/dev/n
 
 **立即执行：** 使用 Skill 工具加载 `openspec-verify-change` 技能。禁止跳过此步骤。
 
-调用 `openspec-verify-change` 时，ARGUMENTS 必须包含：
-
-```text
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。遵循 `/comet` 的 CodeGraph 代码证据规则验证实现证据。
-```
-
 技能加载后，按其指引验证。检查项：
 1. tasks.md 全部任务已完成（`[x]`）
-2. `openspec/changes/<name>/test-cases.md` 中每个测试/验证用例均有结果、证据或明确未覆盖原因
-3. 实现符合 `openspec/changes/<name>/design.md` 高层设计决策
-4. 实现符合 Design Doc（`docs/superpowers/specs/` 下的技术设计文档）
-5. 能力规格场景全部通过
-6. proposal.md 目标已满足
-7. delta spec 与 design doc 无矛盾（若 Build 阶段有增量修改 spec，检查 design doc 是否有对应记录）
-8. `docs/superpowers/specs/` 关联的设计文档可定位（文件存在且与当前 change 相关）
+2. 实现符合 `openspec/changes/<name>/design.md` 高层设计决策
+3. 实现符合 Design Doc（`docs/superpowers/specs/` 下的技术设计文档）
+4. 能力规格场景全部通过
+5. proposal.md 目标已满足
+6. delta spec 与 design doc 无矛盾（若 Build 阶段有增量修改 spec，检查 design doc 是否有对应记录）
+7. `docs/superpowers/specs/` 关联的设计文档可定位（文件存在且与当前 change 相关）
 
 验证不通过时：报告缺失项，进入 Step 1b 的验证失败决策阻塞点。用户选择修复后，才执行以下命令记录失败并回退到 build 阶段，然后调用 `/comet-build` 补充：
 
@@ -180,10 +165,6 @@ CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。遵循 `/comet` 的 CodeGraph
   - 选项 A：在 design doc 追加 "Implementation Divergence" 节记录偏差原因。选项 A 属于 verify 阶段允许产物；写入后不得因该 design doc 变更再次触发 Step 1b dirty-worktree 决策
   - 选项 B：用户选择 B 后，运行 `"$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail`，然后调用 `/comet-build`；由 `/comet-build` 的 Spec 增量更新规则加载 Superpowers `brainstorming` 更新 Design Doc + delta spec
   - 选项 C：确认偏差可接受，继续验证（归档时 design doc 将标记为 `superseded-by-main-spec`）
-
-### 2c. 完成前即时验证（Superpowers）
-
-在写入 PASS 验证报告、设置 `branch_status: handled`、运行 verify guard、调用 `finishing-a-development-branch`、提交、创建 PR 或声明完成前，必须使用 Skill 工具加载 Superpowers `verification-before-completion` 技能。Comet verify 只负责阶段准出；该技能负责本轮 fresh verification evidence：刚运行的命令、退出码、关键输出摘要和结论必须写入验证报告。禁止使用旧日志、推测性措辞或“应该通过”作为完成依据。
 
 ### 3. 收尾（Superpowers）
 
@@ -207,8 +188,6 @@ CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。遵循 `/comet` 的 CodeGraph
 
 验证报告必须落盘，并在 `.comet.yaml` 中记录；分支处理完成后也必须写入状态字段。不要手动设置 `verify_result: pass`，由阶段守卫 `--apply` 推进。
 
-验证报告必须引用 `openspec/changes/<name>/test-cases.md`，并记录每个验证用例的实际证据：命令输出、报告路径、截图路径、手动验证说明、视觉检查结论或其他可追溯材料。不要把没有自动化测试代码的前端验证项简单标为缺失；只要证据与通过标准可追溯，即可作为该 change 的验证证据。
-
 ```bash
 mkdir -p docs/superpowers/reports
 # 将本次验证结论写入报告文件，例如：
@@ -221,7 +200,6 @@ mkdir -p docs/superpowers/reports
 ## 退出条件
 
 - 验证报告通过
-- 已使用 Skill 工具加载 Superpowers `verification-before-completion` 技能，并在验证报告中记录 fresh verification evidence（命令、退出码、关键输出摘要和结论）
 - 分支已处理
 - `.comet.yaml` 中 `verification_report` 指向已存在的验证报告文件
 - `.comet.yaml` 中 `branch_status: handled`

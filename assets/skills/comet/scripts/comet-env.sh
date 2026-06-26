@@ -16,9 +16,6 @@ export COMET_STATE="${COMET_STATE:-${_comet_script_dir}/comet-state.sh}"
 export COMET_HANDOFF="${COMET_HANDOFF:-${_comet_script_dir}/comet-handoff.sh}"
 export COMET_ARCHIVE="${COMET_ARCHIVE:-${_comet_script_dir}/comet-archive.sh}"
 export COMET_YAML_VALIDATE="${COMET_YAML_VALIDATE:-${_comet_script_dir}/comet-yaml-validate.sh}"
-export COMET_CODEGRAPH_CONTEXT="${COMET_CODEGRAPH_CONTEXT:-${_comet_script_dir}/comet-codegraph-context.sh}"
-export COMET_ARTIFACTS_DIR="${COMET_ARTIFACTS_DIR:-openspec/.comet}"
-export COMET_CODEGRAPH_CONTEXT_FILE="${COMET_CODEGRAPH_CONTEXT_FILE:-${COMET_ARTIFACTS_DIR}/codegraph-context.md}"
 
 _comet_bash_is_usable() {
   local _comet_bash_candidate="$1"
@@ -96,8 +93,7 @@ for _comet_script in \
   "$COMET_STATE" \
   "$COMET_HANDOFF" \
   "$COMET_ARCHIVE" \
-  "$COMET_YAML_VALIDATE" \
-  "$COMET_CODEGRAPH_CONTEXT"; do
+  "$COMET_YAML_VALIDATE"; do
   if [ ! -f "$_comet_script" ]; then
     _comet_env_fail
     _comet_env_missing=1

@@ -24,20 +24,6 @@ agent 做决策只需读本节，参考附录按需查阅。
 
 以触发本次工作流的用户请求语言作为默认输出语言。恢复已有 change 时，如果现有产物有明确主语言，除非用户明确要求切换，否则保持该语言。
 
-### CodeGraph 代码证据规则
-
-所有需要理解、定位、设计、规划、实现或验证本地代码的步骤，都必须先生成并读取阶段性的 CodeGraph 上下文：
-
-```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" <mode> "<change-name-or-user-request>"
-```
-
-`$COMET_CODEGRAPH_CONTEXT_FILE` 是 Comet 调用 OpenSpec / Superpowers 时的主要代码证据。ARGUMENTS 必须显式传递该文件，并要求下游优先使用 Relationship Analysis、Impact、Affected Tests 和 Targeted Source Excerpts。不得全量扫描源码；只有 CodeGraph 证据不足以解释行为时，才按 CodeGraph 指向读取少量相关文件。
-
-### 验证矩阵规则
-
-`test-cases.md` 只作为验证账本。`openspec/changes/<name>/test-cases.md` 记录关键验收场景、关联任务、验证方式、通过标准、证据位置和实际结果；它不是全项目测试目录，也不复制 Superpowers `test-driven-development` 或 `verification-before-completion` 的执行流程。阶段 skill 只需引用该矩阵、按需补充条目，并把 Superpowers 或项目命令产出的实际证据摘要写回。
-
 ### 阶段自动检测
 
 **Step 0: 活跃 Change 发现与意图判定**

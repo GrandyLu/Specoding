@@ -30,15 +30,7 @@ Proceed to Step 1 after verification passes. The script outputs specific failure
 
 **Idempotency**: All build phase operations can be safely re-executed. Read `.comet.yaml` `phase` field to confirm still in build, read plan header `base-ref`, then use `grep -n '\- \[ \]' tasks.md | head -1` to find the first unchecked task. Already-committed tasks must not be re-committed.
 
-**OpenSpec → Superpowers consistency**: On build entry and exit, guard checks that the Design Doc frontmatter `canonical_spec_hash` still equals the current OpenSpec handoff hash. If OpenSpec artifacts changed after the Design Doc was generated, rerun `comet-handoff.sh` and refresh the Design Doc before continuing; do not plan or implement from a stale Superpowers design.
-
 ### 1. Create Plan (Subagent Offload)
-
-First generate plan-phase CodeGraph context:
-
-```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" plan "<change-name>"
-```
 
 Create the implementation plan through a subagent, avoiding planning skill occupying main session context. Plan files and execution feedback must use the language of the user request that triggered this workflow.
 
@@ -46,7 +38,7 @@ Create the implementation plan through a subagent, avoiding planning skill occup
 
 You are an implementation planning expert. Create an implementation plan based on the following inputs:
 
-1. **Immediately execute:** Use the Skill tool to load the Superpowers `writing-plans` skill. Skipping this step is prohibited. After the skill loads, ARGUMENTS must include: `Language: Use the language of the user request that triggered this workflow`; `CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the /comet CodeGraph Code Evidence Rule`; `Test Cases: openspec/changes/<name>/test-cases.md. Follow the /comet Verification Matrix Rule; every implementation task must link to corresponding verification items`.
+1. **Immediately execute:** Use the Skill tool to load the Superpowers `writing-plans` skill. Skipping this step is prohibited. After the skill loads, ARGUMENTS must include: `Language: Use the language of the user request that triggered this workflow`
 2. Read the Design Doc (technical design document under `docs/superpowers/specs/`)
 3. Read `openspec/changes/<name>/tasks.md` (task boundaries)
 4. Follow the skill's guidance to create the plan
@@ -54,7 +46,6 @@ You are an implementation planning expert. Create an implementation plan based o
 Plan requirements:
 - Save to `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`
 - Reference design document, break down into executable tasks
-- Reference `openspec/changes/<name>/test-cases.md` and state each task's verification method
 - **Plan file header must contain associated metadata**:
 
 ```yaml
@@ -209,27 +200,6 @@ git commit -m "chore: add implementation plan"
 
 **Execute plan**: Must handle execution according to the actual runtime of `build_mode`.
 
-Before loading `subagent-driven-development` or `executing-plans`, refresh build-phase CodeGraph context:
-
-```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
-```
-
-Before loading the execution skill, read the project config `context_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`). implementation phases load only `context_skills`; these skills should provide component-library rules, development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other implementation constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue execution, but do not claim the implementation followed project-specific constraints that were not provided. code review phases load only `review_skills`; do not treat `context_skills` as review rubrics.
-
-**Verification Ledger Handoff (Superpowers + Comet)**:
-
-`test-cases.md` is only a verification ledger: it records scenarios, related tasks, verification methods, pass criteria, evidence locations, and actual results. Do not copy the flow of Superpowers `test-driven-development` or `verification-before-completion` here; those flows are executed by the corresponding Superpowers skills. Comet only requires writing back concise summaries of the evidence they produce.
-
-When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint, CodeGraph constraint, and verification matrix constraint:
-
-```text
-Language: Use the language of the user request that triggered this workflow.
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule.
-Test Cases: openspec/changes/<name>/test-cases.md. Confirm, supplement, or correct corresponding verification items according to the `/comet` Verification Matrix Rule.
-Evidence Ledger: do not copy TDD or before-completion verification flow; only write actual evidence summaries from Superpowers skills and project commands back to `test-cases.md`.
-```
-
 - `build_mode: executing-plans`: **Immediately execute:** Use the Skill tool to load the Superpowers `executing-plans` skill. Skipping this step is prohibited. If the skill is unavailable, stop the process and prompt to install or enable the corresponding skill; do not substitute with normal conversation. After the skill loads, ARGUMENTS must include the same Language constraint as Step 1: `Language: Use the language of the user request that triggered this workflow`. Execute according to plan.
 - `build_mode: subagent-driven-development`: The main session only coordinates and must not write implementation code directly. **Immediately execute:** Use the Skill tool to load the Superpowers `subagent-driven-development` skill. After the skill loads, read `comet/reference/subagent-dispatch.md` for Comet-specific extensions (real background dispatch, task isolation, checkoff verification, TDD constraints, continuous execution, context recovery) and apply them alongside the skill's workflow. If they conflict, the more specific Comet extensions take precedence.
 - If the current platform has no real background agent dispatch capability, must pause and wait for the user to choose main window execution instead. After the user chooses, must run `"$COMET_BASH" "$COMET_STATE" set <name> build_mode executing-plans`, then follow the `build_mode: executing-plans` branch to load the Superpowers `executing-plans` skill. Must not continue executing tasks before the user explicitly chooses.
@@ -242,11 +212,9 @@ If `tdd_mode: tdd`:
 
 If `tdd_mode: direct`: Follow normal flow, no enforced TDD.
 
-During execution, complete tasks.md checkboxes, update related `test-cases.md` verification methods/pass criteria/evidence, and commit code after each task completion.
-
 **`executing-plans` review gate**:
 
-When `build_mode` is `executing-plans`, after all planned tasks are complete and before running the build → verify phase guard, must use the Skill tool to load the Superpowers `requesting-code-review` skill and request code review at least once. Code review phases load only `review_skills`: before loading `requesting-code-review`, read the project config `review_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`) and load each as code review rules; do not load these review-only skills during implementation.
+When `build_mode` is `executing-plans`, after all planned tasks are complete and before running the build → verify phase guard, must use the Skill tool to load the Superpowers `requesting-code-review` skill and request code review at least once.
 
 Requirements:
 - the `requesting-code-review` skill must be loaded before `"$COMET_BASH" "$COMET_GUARD" <change-name> build --apply`
@@ -269,13 +237,6 @@ When the initial spec is found incomplete during implementation, handle by scale
 | Small | Missing acceptance scenarios, edge cases | Directly edit delta spec + design.md, append tasks.md tasks |
 | Medium | Interface changes, new components, data flow changes | **Must use the current platform's available user input/confirmation mechanism to pause and wait for the user to explicitly confirm**, then must use Skill tool to load the Superpowers `brainstorming` skill to update Design Doc + delta spec |
 | Large | Brand-new capability requirements | **Must use the current platform's available user input/confirmation mechanism to pause and wait for the user to explicitly confirm the split**; after user confirms, create independent change through `/comet-open` |
-
-When loading `brainstorming` for a medium-scale Spec incremental update, ARGUMENTS must include the same Language constraint as Step 1:
-
-```text
-Language: Use the language of the user request that triggered this workflow.
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule to determine the expanded impact area.
-```
 
 **50% Threshold Determination**: Using initial task count in tasks.md as baseline, if new tasks exceed half of that total, it's considered outside original plan scope, **must follow the `comet/reference/decision-point.md` protocol to pause and wait for the user to decide whether to split into a new change**.
 
@@ -304,8 +265,6 @@ Build is the longest phase and may span many tasks. To support resume after cont
 ## Exit Conditions
 
 - All tasks.md checked
-- `test-cases.md` completed for this change, with every completed task linked to at least one verification case or an explicit not-applicable rationale
-- For automatable feature work, bug fixes, refactoring, or behavior changes, the Skill tool has been used to load the Superpowers `test-driven-development` skill and concise RED/GREEN/REFACTOR evidence from that skill has been recorded in task commit notes or `test-cases.md`
 - Code committed
 - Project-specific build/tests explicitly run and pass; do not rely only on guard auto-detection
 - `isolation` has been written as `branch` or `worktree`

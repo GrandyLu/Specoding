@@ -85,14 +85,6 @@ beta 交接包是 **结构化 spec projection**，用于减少 OpenSpec 原文 t
 
 ### 1b. 执行 Brainstorming（带上下文）
 
-先生成设计阶段 CodeGraph 上下文，用于约束 Superpowers 设计对现有代码的理解：
-
-```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
-```
-
-先读取项目配置中的 `context_skills` 列表（优先 `.comet/config.yaml`，兼容 `openspec/comet.yaml`）。若配置了一个或多个项目上下文 skill，必须逐个使用 Skill 工具加载；这些 skill 可提供组件库规则、开发规范、架构约束、内部组件 API、设计稿映射规则、安全要求、测试规范或其他项目约束。若未配置或加载后未提供有效上下文，记录“项目未配置 context skill”或“context skill 未提供有效项目上下文”，继续设计，但不得声称已遵循未提供的项目专属约束。不要在设计阶段加载 `review_skills`。
-
 **立即执行：** 使用 Skill 工具加载 Superpowers `brainstorming` 技能。禁止跳过此步骤。
 
 技能加载时，ARGUMENTS 必须包含：
@@ -107,13 +99,6 @@ Language: 使用触发本次工作流的用户请求语言输出
 Change: <change-name>
 OpenSpec Context Pack: openspec/changes/<name>/.comet/handoff/design-context.md
 Machine handoff: openspec/changes/<name>/.comet/handoff/design-context.json
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
-Language: 使用触发本次工作流的用户请求语言输出；Design Doc、delta spec、提问和确认摘要均使用该语言。
-
-OpenSpec 产物是上游事实源，不要重新定义需求，不要重写 proposal/spec。
-你的任务是基于交接包和 CodeGraph Context 做深度技术设计：实现方案、技术风险、测试策略、边界条件。遵循 `/comet` 的 CodeGraph 代码证据规则。
-如本 change 涉及项目专属规范、组件选型、组件使用、设计稿组件映射、安全要求或测试规范，优先使用项目配置 `context_skills` 所配置 skill 提供的约束；不要在 Design Doc 中重复粘贴上下文 skill 全文。
-如发现 OpenSpec delta spec 缺少验收场景，只能提出 Spec Patch，并回写 OpenSpec delta spec；不要在 Design Doc 中创建第二份需求 spec。
 
 如 context_compression: beta，则使用：
 OpenSpec Context Pack: openspec/changes/<name>/.comet/handoff/spec-context.md
@@ -129,10 +114,7 @@ Design Doc frontmatter 必须最小化，只包含：
 comet_change: <change-name>
 role: technical-design
 canonical_spec: openspec
-canonical_spec_hash: <handoff_hash>
 ---
-
-`canonical_spec_hash` 必须等于当前 `.comet.yaml` 的 `handoff_hash`。如果 Step 1c 回写了 OpenSpec delta spec，先重新运行 `comet-handoff.sh` 更新 hash，再创建或更新 Design Doc frontmatter。
 
 按 Superpowers `brainstorming` 技能原流程推进：澄清问题、2-3 个方案、分段确认设计。不得提前写入 Design Doc。
 ```
@@ -143,7 +125,7 @@ canonical_spec_hash: <handoff_hash>
 
 技能加载后，按其指引产出设计方案（以对话形式呈现）：
 - 技术方案：架构、数据流、关键技术选型与风险
-- 测试策略：引用 `openspec/changes/<name>/test-cases.md`，按 `/comet` 的验证矩阵规则说明关键验证证据
+- 测试策略
 - 需求/范围缺口与需回写的 Spec Patch
 - 如需补充验收场景，标明将回写的 delta spec 变更
 
@@ -163,8 +145,6 @@ brainstorming 产出设计方案后，**必须按 `comet/reference/decision-poin
 
 用户明确确认后，才继续 Step 2。若用户要求调整，继续 brainstorming 迭代，直到用户确认。
 
-
-如果 Step 1c 回写了 delta spec（新增或修改了 `specs/*/spec.md`），必须先重新生成 handoff 以更新 hash。然后确认 Design Doc frontmatter 的 `canonical_spec_hash` 等于最新 `handoff_hash`，再记录 design_doc 路径：
 
 ### 1d. Brainstorming 检查点定稿
 
@@ -237,25 +217,24 @@ canonical_spec: openspec
 先记录 design_doc 路径。如果 Spec Patch 回写了 delta spec（新增或修改了 `specs/*/spec.md`），必须重新生成 handoff 以更新 hash：
 
 ```bash
-# 如有 delta spec 变更，重新生成 handoff（更新 hash）
-"$COMET_BASH" "$COMET_HANDOFF" <change-name> design --write
-
 # 记录 design_doc 路径
 "$COMET_BASH" "$COMET_STATE" set <name> design_doc docs/superpowers/specs/YYYY-MM-DD-topic-design.md
+
+# 如有 delta spec 变更，重新生成 handoff（更新 hash）
+"$COMET_BASH" "$COMET_HANDOFF" <change-name> design --write
 
 # 阶段守卫推进 phase 到下一阶段
 "$COMET_BASH" "$COMET_GUARD" <change-name> design --apply
 ```
 
-如果没有 delta spec 变更，跳过 handoff 重新生成步骤，但 Design Doc 仍必须写入当前 `handoff_hash`。状态文件自动更新，无需手动编辑其他字段。
+如果没有 delta spec 变更，跳过 handoff 重新生成步骤。状态文件自动更新，无需手动编辑其他字段。
 
 ## 退出条件
 
 - Design Doc 已创建并保存
-- Design Doc frontmatter 包含 `comet_change`、`role: technical-design`、`canonical_spec: openspec`、`canonical_spec_hash`
+- Design Doc frontmatter 包含 `comet_change`、`role: technical-design`、`canonical_spec: openspec`
 - `handoff_context` 和 `handoff_hash` 已写入 `.comet.yaml`（由 guard 强制校验）
 - `handoff_hash` 与当前 OpenSpec open 阶段产物一致（由 guard 强制校验）
-- Design Doc 的 `canonical_spec_hash` 与当前 OpenSpec handoff hash 一致，防止 OpenSpec 与 Superpowers Design Doc 静默漂移（由 guard 强制校验）
 - `design-context.md` 或 beta `spec-context.md` 必须是脚本生成，且包含 source path、mode、sha256 等可追溯标记（由 guard 强制校验）
 - beta 模式下，`spec-context.json` 必须结构合法且引用当前源文件（由 guard 强制校验）
 - 如有新能力或补充验收场景，OpenSpec delta spec 已创建/更新

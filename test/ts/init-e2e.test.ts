@@ -95,7 +95,7 @@ describe('comet init E2E', () => {
 
     expect(result.projectPath).toBe(tmpDir);
     expect(result.scope).toBe('project');
-    expect(result.language).toBe('zh');
+    expect(result.language).toBe('en');
     expect(result.selectedPlatforms).toContain('claude');
     expect(result.workingDirsCreated).toBe(true);
 
@@ -110,31 +110,8 @@ describe('comet init E2E', () => {
       await expect(fs.access(dest)).resolves.toBeUndefined();
     }
 
-    const cometSkill = await fs.readFile(
-      path.join(tmpDir, '.claude', 'skills', 'comet-open', 'SKILL.md'),
-      'utf-8',
-    );
-    expect(cometSkill).toContain('# Comet 阶段 1：开启（Open）');
-
     await expect(fs.stat(path.join(tmpDir, 'docs', 'superpowers', 'specs'))).resolves.toBeDefined();
     await expect(fs.stat(path.join(tmpDir, 'docs', 'superpowers', 'plans'))).resolves.toBeDefined();
-  }, 20_000);
-
-  it('respects explicit English language selection during non-interactive init', async () => {
-    mockExternalSuccess();
-    await fs.mkdir(path.join(tmpDir, '.claude'), { recursive: true });
-
-    const { initCommand } = await import('../../src/commands/init.js');
-    const result = await captureJsonOutput(() =>
-      initCommand(tmpDir, { yes: true, json: true, language: 'en' }),
-    );
-
-    expect(result.language).toBe('en');
-    const cometOpenSkill = await fs.readFile(
-      path.join(tmpDir, '.claude', 'skills', 'comet-open', 'SKILL.md'),
-      'utf-8',
-    );
-    expect(cometOpenSkill).toContain('# Comet Phase 1: Open');
   }, 20_000);
 
   it('installs Comet skills at global scope', async () => {

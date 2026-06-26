@@ -1,0 +1,22 @@
+{
+  "name": "comet-scan-vue-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue 3 frontend demo for testing /comet-scan on routes, pages, components, and UI state flows.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "vite": "^5.4.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20"
+  }
+}

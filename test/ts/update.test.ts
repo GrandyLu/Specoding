@@ -66,10 +66,10 @@ describe('update command helpers', () => {
     await expect(detectInstalledCometLanguage(tmpDir, claudePlatform)).resolves.toBe('en');
   });
 
-  it('defaults installed comet language to Chinese when the skills directory is missing', async () => {
+  it('defaults installed comet language to English when the skills directory is missing', async () => {
     await fs.mkdir(path.join(tmpDir, '.claude'), { recursive: true });
 
-    await expect(detectInstalledCometLanguage(tmpDir, claudePlatform)).resolves.toBe('zh');
+    await expect(detectInstalledCometLanguage(tmpDir, claudePlatform)).resolves.toBe('en');
   });
 
   it('finds only scopes and platforms that already have comet skills installed', async () => {

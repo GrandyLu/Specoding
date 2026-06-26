@@ -17,18 +17,6 @@ git ls-files --others --exclude-standard
 
 When needed, inspect `git diff`, `git diff --cached`, and newly created file contents.
 
-Then generate CodeGraph context for the dirty worktree to support attribution and impact analysis:
-
-```bash
-COMET_ENV="${COMET_ENV:-$(find . "$HOME"/.*/skills "$HOME/.config" "$HOME/.gemini" -path '*/comet/scripts/comet-env.sh' -type f -print -quit 2>/dev/null)}"
-if [ -n "$COMET_ENV" ]; then
-  . "$COMET_ENV"
-  "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" dirty "<change-name-or-dirty-files>"
-fi
-```
-
-For attribution, prefer Git Change Context, Relationship Analysis, Impact, Affected Tests, Targeted Source Excerpts, and Callback Relationship Hints in `$COMET_CODEGRAPH_CONTEXT_FILE`. Do not scan the full source tree. Only read a small number of CodeGraph-directed files when CodeGraph evidence is insufficient.
-
 ## 2. Core Rules
 
 - The user may not say which files they changed. If the worktree is dirty, including new files shown as `??` in Git status, assume changes may come from the user or mixed sources.
@@ -41,7 +29,7 @@ Classify dirty diffs into three groups:
 
 1. **Belongs to the current change**: Files and content match the current change goal, tasks.md, plan, or delta spec. Incorporate the diff into the current task and avoid redoing the same work.
 2. **Does not belong to the current change**: Files or content are unrelated. Pause and ask whether to include it in the current change, split it into a new change, leave it alone, or discard it with explicit authorization.
-3. **Unclear source**: The diff, documents, and CodeGraph context are not enough to determine ownership. Pause, report the file list and reasoning, and do not advance the phase.
+3. **Unclear source**: The diff and documents are not enough to determine ownership. Pause, report the file list and reasoning, and do not advance the phase.
 
 ## 4. Common Patterns
 

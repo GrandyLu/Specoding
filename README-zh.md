@@ -399,16 +399,6 @@ full workflow 初始化时 `build_mode`、`build_pause`、`isolation`、`verify_
 `handoff_context` 和 `handoff_hash` 由 `comet-handoff.sh` 在离开 design 阶段前写入。项目可在 change 或仓库根配置中设置
 `build_command` / `verify_command`，guard 会优先运行并打印失败输出。
 
-项目级 `.comet/config.yaml` 控制默认值和非 change 状态的 skill 挂载点：
-
-```yaml
-context_compression: off
-review_mode: off
-context_skills: []   # design/build 实现上下文，例如组件库 skill
-review_skills: []    # 只在代码审查前加载的 review 规则
-auto_transition: true
-```
-
 </details>
 
 ### 可靠性特性
@@ -464,7 +454,7 @@ Comet 通过自动化状态转换确保 agent 执行可靠性：
 ```
 your-project/
 ├── .comet/
-│   └── config.yaml              # 项目配置（context_skills、review_skills、review_mode 等）
+│   └── config.yaml              # 项目级全局配置（context_compression、auto_transition 等）
 ├── .claude/skills/              # 平台技能目录（Comet + OpenSpec + Superpowers）
 │   ├── comet/SKILL.md
 │   │   └── scripts/

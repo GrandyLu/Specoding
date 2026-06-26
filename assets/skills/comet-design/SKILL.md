@@ -85,14 +85,6 @@ Handoff package sources come from OpenSpec open phase artifacts:
 
 ### 1b. Execute Brainstorming (with Context)
 
-First generate design-phase CodeGraph context to constrain Superpowers' understanding of the existing code:
-
-```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
-```
-
-First read the project config `context_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`). If one or more project context skills are configured, use the Skill tool to load each of them; these skills may provide component-library rules, development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other project constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue design, but do not claim compliance with project-specific constraints that were not provided. Do not load `review_skills` during design.
-
 **Immediately execute:** Use the Skill tool to load the Superpowers `brainstorming` skill. Skipping this step is prohibited.
 
 When loading the skill, ARGUMENTS must include:
@@ -107,13 +99,6 @@ After the skill loads, follow its guidance and use the following context:
 Change: <change-name>
 OpenSpec Context Pack: openspec/changes/<name>/.comet/handoff/design-context.md
 Machine handoff: openspec/changes/<name>/.comet/handoff/design-context.json
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
-Language: Use the language of the user request that triggered this workflow for the Design Doc, delta spec, questions, and confirmation summary.
-
-OpenSpec artifacts are the upstream source of truth. Do not redefine requirements, do not rewrite proposal/spec.
-Your task is to perform deep technical design based on the handoff package and CodeGraph Context: implementation approach, technical risks, testing strategy, boundary conditions. Follow the `/comet` CodeGraph Code Evidence Rule.
-If this change involves project-specific standards, component selection, component usage, design-file component mappings, security requirements, or testing standards, prefer the constraints provided by skills listed in project config `context_skills`; do not paste full context-skill guidance into the Design Doc.
-If you find OpenSpec delta spec missing acceptance scenarios, you may only propose Spec Patches and write them back to OpenSpec delta spec; do not create a second requirements spec in the Design Doc.
 
 If context_compression is beta, use:
 OpenSpec Context Pack: openspec/changes/<name>/.comet/handoff/spec-context.md
@@ -129,10 +114,7 @@ Design Doc frontmatter must be minimal, containing only:
 comet_change: <change-name>
 role: technical-design
 canonical_spec: openspec
-canonical_spec_hash: <handoff_hash>
 ---
-
-`canonical_spec_hash` must equal the current `.comet.yaml` `handoff_hash`. If Step 1c writes back OpenSpec delta specs, rerun `comet-handoff.sh` to update the hash before creating or updating the Design Doc frontmatter.
 
 Proceed through the original `brainstorming` skill flow: clarifying questions, 2-3 approaches, and step-by-step design confirmation. Do not write the Design Doc early.
 ```
@@ -143,7 +125,7 @@ If the Superpowers `brainstorming` skill is unavailable, stop the process and pr
 
 After the skill loads, follow its guidance to produce design proposals (presented as conversation):
 - Technical approach: architecture, data flow, key technology choices and risks
-- Testing strategy: reference `openspec/changes/<name>/test-cases.md` and identify key verification evidence according to the `/comet` Verification Matrix Rule
+- Testing strategy
 - Requirement/scope gaps and Spec Patches to be written back
 - If acceptance scenarios need supplementing, indicate delta spec changes to be written back
 
@@ -234,25 +216,24 @@ If Spec Patches need to be written back, also edit the corresponding `specs/*/sp
 First record the design_doc path. If Spec Patches wrote back delta spec (added or modified `specs/*/spec.md`), must regenerate handoff to update hash:
 
 ```bash
-# If delta spec changes exist, regenerate handoff (update hash)
-"$COMET_BASH" "$COMET_HANDOFF" <change-name> design --write
-
 # Record design_doc path
 "$COMET_BASH" "$COMET_STATE" set <name> design_doc docs/superpowers/specs/YYYY-MM-DD-topic-design.md
+
+# If delta spec changes exist, regenerate handoff (update hash)
+"$COMET_BASH" "$COMET_HANDOFF" <change-name> design --write
 
 # Auto-transition to next phase
 "$COMET_BASH" "$COMET_GUARD" <change-name> design --apply
 ```
 
-If there are no delta spec changes, skip the handoff regeneration step, but the Design Doc still must record the current `handoff_hash`. The state file updates automatically; no manual editing of other fields needed.
+If there are no delta spec changes, skip the handoff regeneration step. The state file updates automatically; no manual editing of other fields needed.
 
 ## Exit Conditions
 
 - Design Doc created and saved
-- Design Doc frontmatter contains `comet_change`, `role: technical-design`, `canonical_spec: openspec`, `canonical_spec_hash`
+- Design Doc frontmatter contains `comet_change`, `role: technical-design`, `canonical_spec: openspec`
 - `handoff_context` and `handoff_hash` written to `.comet.yaml` (enforced by guard)
 - `handoff_hash` matches current OpenSpec open phase artifacts (enforced by guard)
-- Design Doc `canonical_spec_hash` matches the current OpenSpec handoff hash, preventing silent drift between OpenSpec and the Superpowers Design Doc (enforced by guard)
 - `design-context.md` or beta `spec-context.md` must be script-generated and contain source path, mode, sha256 traceability markers (enforced by guard)
 - In beta mode, `spec-context.json` must be structurally valid and reference the current source files (enforced by guard)
 - If new capabilities or supplementary acceptance scenarios exist, OpenSpec delta spec has been created/updated

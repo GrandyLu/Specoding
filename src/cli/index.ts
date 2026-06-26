@@ -25,8 +25,7 @@ program
   .option('--overwrite', 'Overwrite manifest-managed files')
   .option('--json', 'Output as JSON')
   .addOption(new Option('--scope <scope>', 'Install scope').choices(['global', 'project']))
-  .addOption(new Option('--language <lang>', 'Language for skills (default: zh)').choices(['en', 'zh']))
-  .option('--skip-viz', 'Skip architecture visualization')
+  .addOption(new Option('--language <lang>', 'Language for skills').choices(['en', 'zh']))
   .action(async (targetPath = '.', options) => {
     try {
       await initCommand(targetPath, options);

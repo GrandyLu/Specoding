@@ -24,20 +24,6 @@ Agents need only read this section for decision-making. Refer to the Reference A
 
 Use the language of the user request that triggered this workflow as the default output language. When resuming an existing change with a clear dominant artifact language, preserve that language unless the user explicitly asks to switch.
 
-### CodeGraph Code Evidence Rule
-
-Every step that needs to understand, locate, design, plan, implement, or verify local code must first generate and read phase-specific CodeGraph context:
-
-```bash
-"$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" <mode> "<change-name-or-user-request>"
-```
-
-`$COMET_CODEGRAPH_CONTEXT_FILE` is the primary code evidence passed from Comet to OpenSpec / Superpowers. ARGUMENTS must explicitly include this file and require downstream skills to prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts. Do not scan the full source tree. Only read a small number of CodeGraph-directed files when CodeGraph evidence is insufficient to explain behavior.
-
-### Verification Matrix Rule
-
-`test-cases.md` is only a verification ledger. `openspec/changes/<name>/test-cases.md` records key acceptance scenarios, related tasks, verification methods, pass criteria, evidence locations, and actual results; it is not a whole-project test catalog and must not copy the execution flow from Superpowers `test-driven-development` or `verification-before-completion`. Phase skills only need to reference this matrix, supplement entries when needed, and write back summaries of actual evidence produced by Superpowers or project commands.
-
 ### Automatic Phase Detection
 
 **Step 0: Active Change Discovery and Intent Detection**

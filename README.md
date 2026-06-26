@@ -421,16 +421,6 @@ is only needed for full-workflow direct builds, project commands may be absent u
 `build_command` / `verify_command` in the change or repo root, and guard will run those commands first and print failure
 output.
 
-Project-level `.comet/config.yaml` controls defaults and skill hooks that are not per-change state:
-
-```yaml
-context_compression: off
-review_mode: off
-context_skills: []   # design/build implementation context, for example component-library skills
-review_skills: []    # review-only rules loaded before code review
-auto_transition: true
-```
-
 </details>
 
 ### Reliability Features
@@ -481,7 +471,7 @@ Comet ensures agent execution reliability through automated state transitions:
 ```
 your-project/
 ├── .comet/
-│   └── config.yaml              # Project config (context_skills, review_skills, review_mode, etc.)
+│   └── config.yaml              # Project-level global config (context_compression, auto_transition, etc.)
 ├── .claude/skills/              # Platform skills dir (Comet + OpenSpec + Superpowers)
 │   ├── comet/SKILL.md
 │   │   └── scripts/

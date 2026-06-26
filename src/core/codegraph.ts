@@ -1,15 +1,10 @@
 import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { getNpmExecutable, isCommandAvailable } from './openspec.js';
+import { isCommandAvailable, getNpmExecutable } from './openspec.js';
 import { printCommandErrorDetails } from './command-error.js';
 
 import type { InstallScope } from './types.js';
-
-type CodeGraphInstallStatus = 'installed' | 'failed' | 'skipped';
-
-const CODEGRAPH_COMMAND = 'codegraph';
-const CODEGRAPH_PACKAGE = '@colbymchenry/codegraph';
 
 function getPnpmExecutable(platform: NodeJS.Platform = process.platform): string {
   return platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -52,8 +47,8 @@ function resolvePnpmGlobalCommand(command: string): string | null {
 }
 
 function resolveCodegraphCommand(): string | null {
-  if (isCommandAvailable(CODEGRAPH_COMMAND)) return CODEGRAPH_COMMAND;
-  return resolvePnpmGlobalCommand(CODEGRAPH_COMMAND);
+  if (isCommandAvailable('codegraph')) return 'codegraph';
+  return resolvePnpmGlobalCommand('codegraph');
 }
 
 async function ensureCodegraphCli(
@@ -66,7 +61,7 @@ async function ensureCodegraphCli(
 
   console.log('    Installing CodeGraph CLI...');
   try {
-    execFileSync(getNpmExecutable(), ['install', '-g', CODEGRAPH_PACKAGE], {
+    execFileSync(getNpmExecutable(), ['install', '-g', '@colbymchenry/codegraph'], {
       cwd: projectPath,
       stdio: 'inherit',
       timeout: 180_000,
@@ -84,7 +79,7 @@ async function installCodegraph(
   projectPath: string,
   scope: InstallScope,
   shouldInstallCli = true,
-): Promise<CodeGraphInstallStatus> {
+): Promise<'installed' | 'failed' | 'skipped'> {
   if (hasCodegraphProjectIndex(projectPath)) {
     console.log('    CodeGraph: existing .codegraph index detected');
     return 'skipped';
@@ -97,7 +92,7 @@ async function installCodegraph(
       return 'skipped';
     }
     console.error(
-      `    CodeGraph CLI not available. Install manually: npm install -g ${CODEGRAPH_PACKAGE}`,
+      '    CodeGraph CLI not available. Install manually: npm install -g @colbymchenry/codegraph',
     );
     return 'failed';
   }
@@ -135,16 +130,4 @@ async function installCodegraph(
   return 'installed';
 }
 
-async function installCodeGraph(projectPath: string): Promise<CodeGraphInstallStatus> {
-  return installCodegraph(projectPath, 'project', true);
-}
-
-export {
-  CODEGRAPH_COMMAND,
-  CODEGRAPH_PACKAGE,
-  hasCodegraphProjectIndex,
-  installCodeGraph,
-  installCodegraph,
-  resolveCodegraphCommand,
-  type CodeGraphInstallStatus,
-};
+export { installCodegraph, hasCodegraphProjectIndex, resolveCodegraphCommand };

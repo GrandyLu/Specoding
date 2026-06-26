@@ -83,7 +83,6 @@ async function detectInstalledCometLanguage(
   platform: Platform,
   scope: InstallScope = 'project',
 ): Promise<SkillLanguage> {
-  let sawSkill = false;
   for (const skillsDir of getInstalledCometSkillsDirs(baseDir, platform, scope)) {
     if (!(await fileExists(skillsDir))) continue;
     const entries = (await readDir(skillsDir)).filter((entry) => entry.startsWith('comet'));
@@ -94,7 +93,6 @@ async function detectInstalledCometLanguage(
 
       try {
         const content = await fs.readFile(skillPath, 'utf-8');
-        sawSkill = true;
         if (/[㐀-鿿]/u.test(content)) return 'zh';
       } catch {
         // Fall through to the default English asset set if the file cannot be read.
@@ -102,7 +100,7 @@ async function detectInstalledCometLanguage(
     }
   }
 
-  return sawSkill ? 'en' : 'zh';
+  return 'en';
 }
 
 async function detectInstalledCometTargets(

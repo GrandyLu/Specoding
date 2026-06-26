@@ -12,7 +12,6 @@ All notable changes to @rpamis/comet will be documented in this file.
 
 ### Changed
 
-- **Configurable phase skills**: Generated `.comet/config.yaml` now separates implementation `context_skills` from review-only `review_skills`, so component-library guidance and custom code review rules load in the correct Comet phase without adding new per-change state.
 - **Stricter `--port` validation**: `comet dashboard --port` now rejects values that are not entirely numeric (for example `4321abc`) instead of silently accepting the parsed prefix. Invalid ports fail fast with a clear error message.
 
 ### Fixed

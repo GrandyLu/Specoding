@@ -65,7 +65,6 @@ The script automatically executes:
 4. OpenSpec archive for delta-merge semantics and moving the change to the archive directory
 5. Main spec guard against leaked delta-only section headings
 6. Update `archived: true` through `comet-state transition <archive-name> archived`
-7. Run `codegraph sync` to refresh the post-archive CodeGraph index
 
 If script returns non-zero exit code, report error and stop.
 If script returns zero exit code, archive is complete.
@@ -87,7 +86,6 @@ brainstorming → delta spec → implementation → verification → main spec m
 - Archive script executed successfully (exit code 0)
 - Archive directory `openspec/changes/archive/YYYY-MM-DD-<change-name>/` exists
 - Archived `.comet.yaml` contains `archived: true`
-- `codegraph sync` completed on the successful archive path
 
 The archive script moves `openspec/changes/<name>/` to `openspec/changes/archive/YYYY-MM-DD-<name>/`.
 
