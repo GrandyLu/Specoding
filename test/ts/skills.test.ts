@@ -645,6 +645,11 @@ describe('skills', () => {
       expect(zhBuild).toContain('review_skills');
       expect(zhBuild).toContain('实现阶段只加载 `context_skills`');
       expect(zhBuild).toContain('代码审查阶段只加载 `review_skills`');
+      expect(zhComet).toContain('`test-cases.md` 只作为验证账本');
+      expect(zhBuild).toContain('`test-cases.md` 只作为验证账本');
+      expect(zhBuild).not.toContain(
+        'TDD Discipline: 适合自动化测试的用例按 Superpowers `test-driven-development` 执行',
+      );
       expect(zhBuild).toContain('| `off` | 不自动派发代码审查 |');
       expect(zhBuild).toContain('| `standard` | 只在任务完成后运行一次最终轻量代码审查');
       expect(zhBuild).toContain(
@@ -959,6 +964,11 @@ describe('skills', () => {
       expect(enBuild).toContain('review_skills');
       expect(enBuild).toContain('implementation phases load only `context_skills`');
       expect(enBuild).toContain('code review phases load only `review_skills`');
+      expect(enComet).toContain('`test-cases.md` is only a verification ledger');
+      expect(enBuild).toContain('`test-cases.md` is only a verification ledger');
+      expect(enBuild).not.toContain(
+        'TDD Discipline: TDD-suitable cases follow Superpowers `test-driven-development`',
+      );
       expect(enBuild).toContain(
         'use the Skill tool to load the Superpowers `requesting-code-review` skill',
       );

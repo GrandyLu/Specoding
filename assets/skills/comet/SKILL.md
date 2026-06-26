@@ -36,7 +36,7 @@ Every step that needs to understand, locate, design, plan, implement, or verify 
 
 ### Verification Matrix Rule
 
-`openspec/changes/<name>/test-cases.md` is the change-level verification matrix. It records key acceptance scenarios, related tasks, verification methods, pass criteria, and evidence locations. It is not a whole-project test catalog and does not replace Superpowers `test-driven-development` or `verification-before-completion`; phase skills only need to reference this matrix, supplement entries when needed, and write back actual evidence.
+`test-cases.md` is only a verification ledger. `openspec/changes/<name>/test-cases.md` records key acceptance scenarios, related tasks, verification methods, pass criteria, evidence locations, and actual results; it is not a whole-project test catalog and must not copy the execution flow from Superpowers `test-driven-development` or `verification-before-completion`. Phase skills only need to reference this matrix, supplement entries when needed, and write back summaries of actual evidence produced by Superpowers or project commands.
 
 ### Automatic Phase Detection
 

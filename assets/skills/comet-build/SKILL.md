@@ -217,9 +217,9 @@ Before loading `subagent-driven-development` or `executing-plans`, refresh build
 
 Before loading the execution skill, read the project config `context_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`). implementation phases load only `context_skills`; these skills should provide component-library rules, development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other implementation constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue execution, but do not claim the implementation followed project-specific constraints that were not provided. code review phases load only `review_skills`; do not treat `context_skills` as review rubrics.
 
-**TDD Fusion Gate (Superpowers + Comet)**:
+**Verification Ledger Handoff (Superpowers + Comet)**:
 
-`test-cases.md` only records the verification matrix and evidence: TDD-suitable cases record RED/GREEN/REFACTOR evidence, while non-TDD cases record the not-applicable reason and alternative verification method.
+`test-cases.md` is only a verification ledger: it records scenarios, related tasks, verification methods, pass criteria, evidence locations, and actual results. Do not copy the flow of Superpowers `test-driven-development` or `verification-before-completion` here; those flows are executed by the corresponding Superpowers skills. Comet only requires writing back concise summaries of the evidence they produce.
 
 When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint, CodeGraph constraint, and verification matrix constraint:
 
@@ -227,7 +227,7 @@ When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must 
 Language: Use the language of the user request that triggered this workflow.
 CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule.
 Test Cases: openspec/changes/<name>/test-cases.md. Confirm, supplement, or correct corresponding verification items according to the `/comet` Verification Matrix Rule.
-TDD Discipline: TDD-suitable cases follow Superpowers `test-driven-development`, with RED/GREEN/REFACTOR evidence written back to `test-cases.md` or task commit notes; non-TDD cases record the reason and alternative verification evidence.
+Evidence Ledger: do not copy TDD or before-completion verification flow; only write actual evidence summaries from Superpowers skills and project commands back to `test-cases.md`.
 ```
 
 - `build_mode: executing-plans`: **Immediately execute:** Use the Skill tool to load the Superpowers `executing-plans` skill. Skipping this step is prohibited. If the skill is unavailable, stop the process and prompt to install or enable the corresponding skill; do not substitute with normal conversation. After the skill loads, ARGUMENTS must include the same Language constraint as Step 1: `Language: Use the language of the user request that triggered this workflow`. Execute according to plan.
@@ -305,7 +305,7 @@ Build is the longest phase and may span many tasks. To support resume after cont
 
 - All tasks.md checked
 - `test-cases.md` completed for this change, with every completed task linked to at least one verification case or an explicit not-applicable rationale
-- For automatable feature work, bug fixes, refactoring, or behavior changes, the Skill tool has been used to load the Superpowers `test-driven-development` skill and RED/GREEN/REFACTOR evidence has been recorded; tasks where TDD is not applicable have a reason and alternative verification method recorded in `test-cases.md`
+- For automatable feature work, bug fixes, refactoring, or behavior changes, the Skill tool has been used to load the Superpowers `test-driven-development` skill and concise RED/GREEN/REFACTOR evidence from that skill has been recorded in task commit notes or `test-cases.md`
 - Code committed
 - Project-specific build/tests explicitly run and pass; do not rely only on guard auto-detection
 - `isolation` has been written as `branch` or `worktree`

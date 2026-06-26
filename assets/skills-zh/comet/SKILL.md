@@ -36,7 +36,7 @@ agent 做决策只需读本节，参考附录按需查阅。
 
 ### 验证矩阵规则
 
-`openspec/changes/<name>/test-cases.md` 是 change 级验证矩阵，记录关键验收场景、关联任务、验证方式、通过标准和证据位置。它不是全项目测试目录，也不替代 Superpowers 的 `test-driven-development` 或 `verification-before-completion`；阶段 skill 只需引用该矩阵、按需补充条目，并写回实际证据。
+`test-cases.md` 只作为验证账本。`openspec/changes/<name>/test-cases.md` 记录关键验收场景、关联任务、验证方式、通过标准、证据位置和实际结果；它不是全项目测试目录，也不复制 Superpowers `test-driven-development` 或 `verification-before-completion` 的执行流程。阶段 skill 只需引用该矩阵、按需补充条目，并把 Superpowers 或项目命令产出的实际证据摘要写回。
 
 ### 阶段自动检测
 
