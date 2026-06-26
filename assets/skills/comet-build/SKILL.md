@@ -215,7 +215,7 @@ Before loading `subagent-driven-development` or `executing-plans`, refresh build
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
 ```
 
-Before loading the execution skill, read the `openspec/comet.yaml` `context_skills` list. If one or more project context skills are configured, use the Skill tool to load each of them; these skills should provide development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other project constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue execution, but do not claim the implementation followed project-specific constraints that were not provided.
+Before loading the execution skill, read the project config `context_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`). implementation phases load only `context_skills`; these skills should provide component-library rules, development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other implementation constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue execution, but do not claim the implementation followed project-specific constraints that were not provided. code review phases load only `review_skills`; do not treat `context_skills` as review rubrics.
 
 **TDD Fusion Gate (Superpowers + Comet)**:
 
@@ -246,7 +246,7 @@ During execution, complete tasks.md checkboxes, update related `test-cases.md` v
 
 **`executing-plans` review gate**:
 
-When `build_mode` is `executing-plans`, after all planned tasks are complete and before running the build → verify phase guard, must use the Skill tool to load the Superpowers `requesting-code-review` skill and request code review at least once.
+When `build_mode` is `executing-plans`, after all planned tasks are complete and before running the build → verify phase guard, must use the Skill tool to load the Superpowers `requesting-code-review` skill and request code review at least once. Code review phases load only `review_skills`: before loading `requesting-code-review`, read the project config `review_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`) and load each as code review rules; do not load these review-only skills during implementation.
 
 Requirements:
 - the `requesting-code-review` skill must be loaded before `"$COMET_BASH" "$COMET_GUARD" <change-name> build --apply`

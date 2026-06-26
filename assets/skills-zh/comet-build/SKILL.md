@@ -227,7 +227,7 @@ git commit -m "chore: add implementation plan"
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" build "<change-name>"
 ```
 
-在加载执行技能前读取 `openspec/comet.yaml` 的 `context_skills` 列表。若配置了一个或多个项目上下文 skill，必须逐个使用 Skill 工具加载；这些 skill 应提供开发规范、架构约束、内部组件 API、设计稿映射规则、安全要求、测试规范或其他项目约束。若未配置或加载后未提供有效上下文，记录“项目未配置 context skill”或“context skill 未提供有效项目上下文”，继续执行，但不得声称实现已遵循未提供的项目专属约束。
+在加载执行技能前读取项目配置中的 `context_skills` 列表（优先 `.comet/config.yaml`，兼容 `openspec/comet.yaml`）。实现阶段只加载 `context_skills`；这些 skill 应提供组件库规则、开发规范、架构约束、内部组件 API、设计稿映射规则、安全要求、测试规范或其他实现约束。若未配置或加载后未提供有效上下文，记录“项目未配置 context skill”或“context skill 未提供有效项目上下文”，继续执行，但不得声称实现已遵循未提供的项目专属约束。代码审查阶段只加载 `review_skills`，不得把 `context_skills` 当作 review rubric。
 
 **TDD 融合门禁（Superpowers + Comet）**：
 
@@ -258,7 +258,7 @@ TDD Discipline: 适合自动化测试的用例按 Superpowers `test-driven-devel
 
 **`executing-plans` review gate**：
 
-当 `build_mode` 为 `executing-plans` 且 `review_mode` 为 `standard` 或 `thorough` 时，在所有计划任务完成后、运行 build → verify 阶段守卫前，必须使用 Skill 工具加载 Superpowers `requesting-code-review` 技能并请求一次代码审查。`review_mode: off` 时跳过自动代码审查，不加载 `requesting-code-review`，并在验证报告草稿或 tasks.md 中记录跳过原因。
+当 `build_mode` 为 `executing-plans` 且 `review_mode` 为 `standard` 或 `thorough` 时，在所有计划任务完成后、运行 build → verify 阶段守卫前，必须使用 Skill 工具加载 Superpowers `requesting-code-review` 技能并请求一次代码审查。代码审查阶段只加载 `review_skills`：在加载 `requesting-code-review` 前读取项目配置中的 `review_skills` 列表（优先 `.comet/config.yaml`，兼容 `openspec/comet.yaml`），逐个加载作为代码审视规则；不得在实现阶段加载这些 review-only skill。`review_mode: off` 时跳过自动代码审查，不加载 `requesting-code-review` 或 `review_skills`，并在验证报告草稿或 tasks.md 中记录跳过原因。
 
 要求：
 - `requesting-code-review` 技能必须在 `"$COMET_BASH" "$COMET_GUARD" <change-name> build --apply` 之前加载

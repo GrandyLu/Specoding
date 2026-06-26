@@ -91,7 +91,7 @@ First generate design-phase CodeGraph context to constrain Superpowers' understa
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
 ```
 
-First read the `openspec/comet.yaml` `context_skills` list. If one or more project context skills are configured, use the Skill tool to load each of them; these skills may provide development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other project constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue design, but do not claim compliance with project-specific constraints that were not provided.
+First read the project config `context_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`). If one or more project context skills are configured, use the Skill tool to load each of them; these skills may provide component-library rules, development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other project constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue design, but do not claim compliance with project-specific constraints that were not provided. Do not load `review_skills` during design.
 
 **Immediately execute:** Use the Skill tool to load the Superpowers `brainstorming` skill. Skipping this step is prohibited.
 
@@ -112,7 +112,7 @@ Language: Use the language of the user request that triggered this workflow for 
 
 OpenSpec artifacts are the upstream source of truth. Do not redefine requirements, do not rewrite proposal/spec.
 Your task is to perform deep technical design based on the handoff package and CodeGraph Context: implementation approach, technical risks, testing strategy, boundary conditions. Follow the `/comet` CodeGraph Code Evidence Rule.
-If this change involves project-specific standards, component selection, component usage, design-file component mappings, security requirements, or testing standards, prefer the constraints provided by skills listed in `openspec/comet.yaml` `context_skills`; do not paste full context-skill guidance into the Design Doc.
+If this change involves project-specific standards, component selection, component usage, design-file component mappings, security requirements, or testing standards, prefer the constraints provided by skills listed in project config `context_skills`; do not paste full context-skill guidance into the Design Doc.
 If you find OpenSpec delta spec missing acceptance scenarios, you may only propose Spec Patches and write them back to OpenSpec delta spec; do not create a second requirements spec in the Design Doc.
 
 If context_compression is beta, use:

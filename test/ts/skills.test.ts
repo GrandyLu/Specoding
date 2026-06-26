@@ -641,6 +641,10 @@ describe('skills', () => {
       expect(zhBuild).toContain('不得自动继续，也不得把暂停写入 `build_mode`');
       expect(zhBuild).toContain('`build_mode` 为 `executing-plans`');
       expect(zhBuild).toContain('review_mode');
+      expect(zhBuild).toContain('context_skills');
+      expect(zhBuild).toContain('review_skills');
+      expect(zhBuild).toContain('实现阶段只加载 `context_skills`');
+      expect(zhBuild).toContain('代码审查阶段只加载 `review_skills`');
       expect(zhBuild).toContain('| `off` | 不自动派发代码审查 |');
       expect(zhBuild).toContain('| `standard` | 只在任务完成后运行一次最终轻量代码审查');
       expect(zhBuild).toContain(
@@ -655,6 +659,8 @@ describe('skills', () => {
       expect(zhVerify).toContain('CRITICAL 或 IMPORTANT 失败项必须修复');
       expect(zhVerify).toContain('不允许跳过修复直接全部接受');
       expect(zhVerify).toContain('当 `review_mode: standard` 或 `thorough` 时');
+      expect(zhVerify).toContain('review_skills');
+      expect(zhVerify).toContain('代码审查前加载');
       expect(zhVerify).toContain('当 `review_mode: off` 时跳过自动代码审查');
       expect(zhVerify).toContain('只检查正确性、安全、边界条件');
       expect(zhVerify).toContain('无 CRITICAL 或 IMPORTANT 问题');
@@ -949,6 +955,10 @@ describe('skills', () => {
         'Must not auto-continue and must not write the pause into `build_mode`',
       );
       expect(enBuild).toContain('`build_mode` is `executing-plans`');
+      expect(enBuild).toContain('context_skills');
+      expect(enBuild).toContain('review_skills');
+      expect(enBuild).toContain('implementation phases load only `context_skills`');
+      expect(enBuild).toContain('code review phases load only `review_skills`');
       expect(enBuild).toContain(
         'use the Skill tool to load the Superpowers `requesting-code-review` skill',
       );
@@ -960,6 +970,8 @@ describe('skills', () => {
       expect(enVerify).toContain('CRITICAL or IMPORTANT failures must be fixed');
       expect(enVerify).toContain('skipping fix to accept all is not allowed');
       expect(enVerify).toContain('Lightweight code review');
+      expect(enVerify).toContain('review_skills');
+      expect(enVerify).toContain('load before code review');
       expect(enVerify).toContain(
         'use the Skill tool to load the Superpowers `requesting-code-review` skill',
       );

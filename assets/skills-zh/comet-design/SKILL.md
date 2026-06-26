@@ -91,7 +91,7 @@ beta 交接包是 **结构化 spec projection**，用于减少 OpenSpec 原文 t
 "$COMET_BASH" "$COMET_CODEGRAPH_CONTEXT" . "$COMET_CODEGRAPH_CONTEXT_FILE" design "<change-name>"
 ```
 
-先读取 `openspec/comet.yaml` 的 `context_skills` 列表。若配置了一个或多个项目上下文 skill，必须逐个使用 Skill 工具加载；这些 skill 可提供开发规范、架构约束、内部组件 API、设计稿映射规则、安全要求、测试规范或其他项目约束。若未配置或加载后未提供有效上下文，记录“项目未配置 context skill”或“context skill 未提供有效项目上下文”，继续设计，但不得声称已遵循未提供的项目专属约束。
+先读取项目配置中的 `context_skills` 列表（优先 `.comet/config.yaml`，兼容 `openspec/comet.yaml`）。若配置了一个或多个项目上下文 skill，必须逐个使用 Skill 工具加载；这些 skill 可提供组件库规则、开发规范、架构约束、内部组件 API、设计稿映射规则、安全要求、测试规范或其他项目约束。若未配置或加载后未提供有效上下文，记录“项目未配置 context skill”或“context skill 未提供有效项目上下文”，继续设计，但不得声称已遵循未提供的项目专属约束。不要在设计阶段加载 `review_skills`。
 
 **立即执行：** 使用 Skill 工具加载 Superpowers `brainstorming` 技能。禁止跳过此步骤。
 
@@ -112,7 +112,7 @@ Language: 使用触发本次工作流的用户请求语言输出；Design Doc、
 
 OpenSpec 产物是上游事实源，不要重新定义需求，不要重写 proposal/spec。
 你的任务是基于交接包和 CodeGraph Context 做深度技术设计：实现方案、技术风险、测试策略、边界条件。遵循 `/comet` 的 CodeGraph 代码证据规则。
-如本 change 涉及项目专属规范、组件选型、组件使用、设计稿组件映射、安全要求或测试规范，优先使用 `openspec/comet.yaml` 的 `context_skills` 所配置 skill 提供的约束；不要在 Design Doc 中重复粘贴上下文 skill 全文。
+如本 change 涉及项目专属规范、组件选型、组件使用、设计稿组件映射、安全要求或测试规范，优先使用项目配置 `context_skills` 所配置 skill 提供的约束；不要在 Design Doc 中重复粘贴上下文 skill 全文。
 如发现 OpenSpec delta spec 缺少验收场景，只能提出 Spec Patch，并回写 OpenSpec delta spec；不要在 Design Doc 中创建第二份需求 spec。
 
 如 context_compression: beta，则使用：

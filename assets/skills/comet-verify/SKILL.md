@@ -127,7 +127,7 @@ Run these 8 checks:
 5. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
 6. Related test or verification evidence passes; evidence type follows the `/comet` Verification Matrix Rule
 7. No obvious security issues (no hardcoded keys, no new unsafe operations)
-8. Lightweight code review passes: use the Skill tool to load the Superpowers `requesting-code-review` skill and request a lightweight review that checks only correctness, security, and edge cases
+8. Lightweight code review passes: when automatic code review is enabled, load before code review the project config `review_skills` list (prefer `.comet/config.yaml`, keep compatibility with `openspec/comet.yaml`) as extra review rules; then use the Skill tool to load the Superpowers `requesting-code-review` skill and request a lightweight review that checks only correctness, security, and edge cases; do not use `context_skills` as review rubrics
 
 The lightweight code review input should be limited to this change's diff, tasks.md, and necessary test results; the review scope covers implementation correctness, security risk, and edge cases only, and does not perform spec coverage, Design Doc consistency, or drift checks. If the review finds CRITICAL or IMPORTANT issues, treat verification as failed and enter Step 1b.
 
