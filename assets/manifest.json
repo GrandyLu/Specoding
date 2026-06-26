@@ -1,8 +1,15 @@
 {
-  "version": "0.3.2",
+  "version": "0.3.11",
   "skills": [
     "comet/SKILL.md",
+    "comet/reference/auto-transition.md",
+    "comet/reference/comet-yaml-fields.md",
+    "comet/reference/context-recovery.md",
+    "comet/reference/debug-gate.md",
+    "comet/reference/decision-point.md",
     "comet/reference/dirty-worktree.md",
+    "comet/reference/file-structure.md",
+    "comet/reference/subagent-dispatch.md",
     "comet/scripts/comet-env.sh",
     "comet/scripts/comet-guard.sh",
     "comet/scripts/comet-state.sh",
@@ -10,6 +17,7 @@
     "comet/scripts/comet-archive.sh",
     "comet/scripts/comet-yaml-validate.sh",
     "comet/scripts/comet-codegraph-context.sh",
+    "comet/scripts/comet-hook-guard.sh",
     "comet-open/SKILL.md",
     "comet-design/SKILL.md",
     "comet-build/SKILL.md",
@@ -19,6 +27,15 @@
     "comet-tweak/SKILL.md",
     "comet-scan/SKILL.md"
   ],
+  "rules": [
+    "comet/rules/comet-phase-guard.md"
+  ],
+  "hooks": {
+    "comet/scripts/comet-hook-guard.sh": {
+      "matcher": "Write|Edit",
+      "description": "Block code writes in wrong Comet phase (open/design/archive)"
+    }
+  },
   "languages": [
     { "id": "zh", "name": "中文", "skillsDir": "skills-zh" },
     { "id": "en", "name": "English", "skillsDir": "skills" }

@@ -90,3 +90,9 @@ docs/superpowers/
 
 # Local examples are ignored unless explicitly re-included.
 examples/*
+
+.codegraph/
+
+.comet/
+
+.agent/

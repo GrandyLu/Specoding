@@ -38,11 +38,20 @@ Proceed to Step 1 after verification passes. The script outputs specific failure
 "$COMET_BASH" "$COMET_HANDOFF" <change-name> design --write
 ```
 
-The script generates and records:
+The script reads the change `.comet.yaml` `context_compression` snapshot, then generates and records the matching handoff package.
+
+Default `context_compression: off` generates:
 
 ```
 openspec/changes/<name>/.comet/handoff/design-context.json
 openspec/changes/<name>/.comet/handoff/design-context.md
+```
+
+Beta mode (`context_compression: beta` in project `.comet/config.yaml`, snapshotted into `.comet.yaml` when the change is created) generates:
+
+```
+openspec/changes/<name>/.comet/handoff/spec-context.json
+openspec/changes/<name>/.comet/handoff/spec-context.md
 ```
 
 And writes to `.comet.yaml`:
@@ -56,6 +65,11 @@ The default handoff package is a **compact traceable excerpt**, not an agent sum
 - `design-context.json`: machine index containing change, phase, canonical spec, source paths, hash
 - `design-context.md`: context for Superpowers to read, containing script markers, source path, line range, sha256, deterministic excerpts
 - When exceeding excerpt budget, marks `[TRUNCATED]` and retains Full source path
+
+The beta handoff package is a **structured spec projection** that reduces OpenSpec token load without replacing the canonical spec:
+- `spec-context.json`: machine index containing change, phase, canonical spec, source paths, hash, and file roles
+- `spec-context.md`: context for Superpowers to read, verbatim-projecting delta spec files and referencing supporting artifacts by hash
+- OpenSpec delta specs remain canonical; if the projection is missing, stale, or unclear, regenerate the handoff or read the source spec directly instead of writing an agent summary
 
 If full context is genuinely needed, explicitly run:
 
@@ -79,7 +93,15 @@ First generate design-phase CodeGraph context to constrain Superpowers' understa
 
 First read the `openspec/comet.yaml` `context_skills` list. If one or more project context skills are configured, use the Skill tool to load each of them; these skills may provide development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other project constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue design, but do not claim compliance with project-specific constraints that were not provided.
 
-**Immediately execute:** Use the Skill tool to load the Superpowers `brainstorming` skill, ARGUMENTS containing:
+**Immediately execute:** Use the Skill tool to load the Superpowers `brainstorming` skill. Skipping this step is prohibited.
+
+When loading the skill, ARGUMENTS must include:
+
+```text
+Language: Use the language of the user request that triggered this workflow
+```
+
+After the skill loads, follow its guidance and use the following context:
 
 ```
 Change: <change-name>
@@ -93,6 +115,15 @@ Your task is to perform deep technical design based on the handoff package and C
 If this change involves project-specific standards, component selection, component usage, design-file component mappings, security requirements, or testing standards, prefer the constraints provided by skills listed in `openspec/comet.yaml` `context_skills`; do not paste full context-skill guidance into the Design Doc.
 If you find OpenSpec delta spec missing acceptance scenarios, you may only propose Spec Patches and write them back to OpenSpec delta spec; do not create a second requirements spec in the Design Doc.
 
+If context_compression is beta, use:
+OpenSpec Context Pack: openspec/changes/<name>/.comet/handoff/spec-context.md
+Machine handoff: openspec/changes/<name>/.comet/handoff/spec-context.json
+
+OpenSpec artifacts are the upstream source of truth, but you must not weaken the Superpowers `brainstorming` clarification flow by "skipping redundant context exploration".
+Your task is to perform deep technical design based on the handoff package: implementation approach, technical risks, testing strategy, boundary conditions.
+If goals, scope, non-goals, acceptance scenarios, or key constraints remain unclear, you must continue asking questions and form the design proposal first; must not create the Design Doc after only one Q&A turn.
+Do not rewrite proposal/spec; if you find OpenSpec delta spec missing acceptance scenarios, you may only propose Spec Patches and write them back to OpenSpec delta spec; do not create a second requirements spec in the Design Doc. Spec Patches are limited to supplementing acceptance scenarios, correcting ambiguous descriptions, or adding boundary conditions — they must not substantially rewrite the delta spec's structure or scope. If major changes are needed, flag them as design findings and return to brainstorming for confirmation.
+
 Design Doc frontmatter must be minimal, containing only:
 ---
 comet_change: <change-name>
@@ -103,23 +134,26 @@ canonical_spec_hash: <handoff_hash>
 
 `canonical_spec_hash` must equal the current `.comet.yaml` `handoff_hash`. If Step 1c writes back OpenSpec delta specs, rerun `comet-handoff.sh` to update the hash before creating or updating the Design Doc frontmatter.
 
-Skip redundant context exploration, proceed directly to design questions.
+Proceed through the original `brainstorming` skill flow: clarifying questions, 2-3 approaches, and step-by-step design confirmation. Do not write the Design Doc early.
 ```
 
-Skipping this step is prohibited. Proceeding without loading this skill is prohibited.
+Proceeding without loading this skill is prohibited.
 
 If the Superpowers `brainstorming` skill is unavailable, stop the process and prompt to install or enable Superpowers skills. Do not substitute this step with normal conversation.
 
 After the skill loads, follow its guidance to produce design proposals (presented as conversation):
 - Technical approach: architecture, data flow, key technology choices and risks
 - Testing strategy: reference `openspec/changes/<name>/test-cases.md` and identify key verification evidence according to the `/comet` Verification Matrix Rule
+- Requirement/scope gaps and Spec Patches to be written back
 - If acceptance scenarios need supplementing, indicate delta spec changes to be written back
 
 The brainstorming phase does not write to the Design Doc file; it only produces design proposals for Step 1c user confirmation. Only after confirmation should `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` be created and delta spec written back.
 
+For context compaction recovery, the agent must incrementally update `brainstorm-summary.md` during brainstorming. After each clarification round or proposal iteration, update the file whenever new confirmed facts, key constraints, candidate approaches, trade-offs/risks, testing strategy, or Spec Patch candidates emerge; mark unconfirmed items as "pending" or "candidate". This file is a recovery checkpoint, not the Design Doc, and must not replace the Step 1c user confirmation.
+
 ### 1c. User Confirms Design Proposal (Blocking Point)
 
-After brainstorming produces a design proposal, **must use the AskUserQuestion tool to pause and wait for the user to explicitly confirm the design proposal**. Must not create the final Design Doc, write `design_doc`, run design guard, or enter `/comet-build` before user confirmation. Must not just output a text prompt and then continue executing.
+After brainstorming produces a design proposal, **must follow the `comet/reference/decision-point.md` protocol to pause and wait for the user to explicitly confirm the design proposal**. Must not create the final Design Doc, write `design_doc`, run design guard, or enter `/comet-build` before user confirmation.
 
 When pausing, only present essential summary:
 - Technical approach adopted
@@ -129,9 +163,75 @@ When pausing, only present essential summary:
 
 Only after the user explicitly confirms, proceed to Step 2. If the user requests adjustments, continue brainstorming iteration until the user confirms.
 
-### 2. Update Comet State
+### 1d. Brainstorming Checkpoint Finalization
 
-If Step 1c wrote back delta spec (added or modified `specs/*/spec.md`), first regenerate handoff to update hash. Then confirm the Design Doc frontmatter `canonical_spec_hash` equals the latest `handoff_hash` before recording the design_doc path:
+After the user confirms the design proposal, before creating the Design Doc, create or update the incrementally maintained checkpoint file and finalize it as the confirmed design summary:
+
+```bash
+mkdir -p openspec/changes/<name>/.comet/handoff
+```
+
+`openspec/changes/<name>/.comet/handoff/brainstorm-summary.md` structure:
+
+```markdown
+# Brainstorm Summary
+
+- Change: <change-name>
+- Date: <YYYY-MM-DD>
+
+## Confirmed Technical Approach
+
+<summary of the user-confirmed approach>
+
+## Key Trade-offs and Risks
+
+<major trade-offs and risks>
+
+## Testing Strategy
+
+<testing method overview>
+
+## Spec Patches
+
+<delta spec changes to write back, or "None" if none>
+```
+
+**Context compaction note**: Each incremental update to `brainstorm-summary.md` is a relatively safe recovery point. After brainstorming completes, if the context window is tight, prefer compacting here. After compaction, reload the following files to continue Step 2:
+- `openspec/changes/<name>/.comet/handoff/brainstorm-summary.md`
+- `openspec/changes/<name>/.comet/handoff/design-context.md` (or `spec-context.md` in beta mode)
+- `openspec/changes/<name>/.comet/handoff/design-context.json` (or `spec-context.json` in beta mode)
+
+### 1e. Active Context Compaction Gate
+
+After Step 1d completes and `brainstorm-summary.md` is written, enter the active compaction gate before creating the Design Doc. At this point the OpenSpec handoff, brainstorming decisions, and pending items are durable, so the agent should proactively release the earlier Spec and brainstorming context to preserve window space for Step 2 and the later Build phase.
+
+Rules:
+- If the current platform provides a native context compaction/cleanup mechanism (for example, the host agent's compact/compaction command, tool, or UI action), trigger active compaction here once; do not try to fake compaction through a shell script.
+- The compaction resume prompt must include the change name, current step (Design Step 2), and the three handoff file categories listed above.
+- If the current platform cannot be compacted programmatically by the agent, pause and tell the user to run the host platform's manual compaction action; continue to Step 2 only after the user confirms compaction is unavailable or asks to continue.
+
+### 2. Create Design Doc
+
+Create the Design Doc based on the full brainstorming conversation context (still in the main session).
+
+Design Doc frontmatter must be minimal:
+
+```yaml
+---
+comet_change: <change-name>
+role: technical-design
+canonical_spec: openspec
+---
+```
+
+Write the Design Doc to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`.
+If Spec Patches need to be written back, also edit the corresponding `specs/*/spec.md`.
+
+**Context compaction recovery**: If context has been compacted, resume from `brainstorm-summary.md` + handoff context. If the user has not confirmed the design proposal yet, return to Step 1b/1c and continue brainstorming; if the user has confirmed it, continue creating the Design Doc. brainstorm-summary.md is the compaction checkpoint, not the sole input for the Design Doc — when creating, leverage the full recovered context as much as possible.
+
+### 3. Update Comet State
+
+First record the design_doc path. If Spec Patches wrote back delta spec (added or modified `specs/*/spec.md`), must regenerate handoff to update hash:
 
 ```bash
 # If delta spec changes exist, regenerate handoff (update hash)
@@ -153,7 +253,8 @@ If there are no delta spec changes, skip the handoff regeneration step, but the 
 - `handoff_context` and `handoff_hash` written to `.comet.yaml` (enforced by guard)
 - `handoff_hash` matches current OpenSpec open phase artifacts (enforced by guard)
 - Design Doc `canonical_spec_hash` matches the current OpenSpec handoff hash, preventing silent drift between OpenSpec and the Superpowers Design Doc (enforced by guard)
-- `design-context.md` must be script-generated and contain source path, mode, sha256 traceability markers (enforced by guard)
+- `design-context.md` or beta `spec-context.md` must be script-generated and contain source path, mode, sha256 traceability markers (enforced by guard)
+- In beta mode, `spec-context.json` must be structurally valid and reference the current source files (enforced by guard)
 - If new capabilities or supplementary acceptance scenarios exist, OpenSpec delta spec has been created/updated
 - `design_doc` written to `.comet.yaml`
 - **Phase guard**: Run `"$COMET_BASH" "$COMET_GUARD" <change-name> design --apply`; after all PASS, auto-transitions to `phase: build`
@@ -164,26 +265,18 @@ Must use `--apply` before exit:
 "$COMET_BASH" "$COMET_GUARD" <change-name> design --apply
 ```
 
-## Context Compaction Recovery
+## Context Compression Recovery
 
-The design phase may trigger context compaction during brainstorming. To recover, first run:
+Follow `comet/reference/context-recovery.md` with phase set to `design`.
 
-```bash
-"$COMET_BASH" "$COMET_STATE" check <change-name> design --recover
-```
+## Automatic Handoff to Next Phase
 
-The script outputs structured recovery context (phase, completed fields, pending fields, recovery action). Follow the Recovery action to determine next step.
-
-## Automatic Transition
-
-After exit conditions are met (including user confirming the design proposal), ensure the state machine has advanced, then read `AUTO_TRANSITION`:
+Follow `comet/reference/auto-transition.md`. Key command:
 
 ```bash
-AUTO_TRANSITION=$("$COMET_BASH" "$COMET_STATE" get <change-name> auto_transition)
+"$COMET_BASH" "$COMET_STATE" next <change-name>
 ```
 
-If `AUTO_TRANSITION` is empty or not `false`, invoke the `comet-build` skill to enter the plan and build phase.
-
-If `AUTO_TRANSITION=false`, do not invoke the next Skill; print:
-
-> State has been updated to `phase: build`. Run `/comet-build` to enter the plan and build phase.
+- `NEXT: auto` → invoke the skill pointed to by `SKILL` to enter the next phase
+- `NEXT: manual` → do not invoke the next skill; prompt user to run `/<SKILL>` manually
+- `NEXT: done` → workflow is complete, no further action needed

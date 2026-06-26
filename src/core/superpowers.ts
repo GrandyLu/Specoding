@@ -23,6 +23,7 @@ const SKILLS_AGENT_MAP: Record<string, string | null> = {
   kilocode: 'kilo',
   auggie: 'augment',
   kiro: 'kiro-cli',
+  kimicode: 'kimi-code-cli',
   lingma: null,
   junie: 'junie',
   codebuddy: 'codebuddy',
@@ -138,7 +139,12 @@ async function installSuperpowersForPlatforms(
   projectPath: string,
   scope: InstallScope,
   platformIds: string[],
+  shouldInstall = true,
 ): Promise<'installed' | 'failed' | 'skipped'> {
+  if (!shouldInstall) {
+    return 'skipped';
+  }
+
   const unknownIds = platformIds.filter((id) => !VALID_PLATFORM_IDS.has(id));
   if (unknownIds.length > 0) {
     throw new Error(`Unknown platform IDs: ${unknownIds.join(', ')}`);

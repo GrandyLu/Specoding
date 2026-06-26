@@ -32,6 +32,7 @@ For attribution, prefer Git Change Context, Relationship Analysis, Impact, Affec
 ## 2. Core Rules
 
 - The user may not say which files they changed. If the worktree is dirty, including new files shown as `??` in Git status, assume changes may come from the user or mixed sources.
+- **Build artifact exclusion**: `??` files matching `.gitignore` patterns (e.g., `node_modules/`, `dist/`, `__pycache__/`, `*.o`, `target/`, `build/`) are automatically skipped during attribution and not treated as user changes.
 - A dirty worktree is code evidence only. It does not automatically advance `.comet.yaml` `phase` or check off `tasks.md`; Comet state may advance only after attribution, verification, required document synchronization, and the relevant phase guard.
 
 ## 3. Attribution

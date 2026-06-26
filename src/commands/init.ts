@@ -1,16 +1,25 @@
 import path from 'path';
 import os from 'os';
 import { checkbox, select } from '@inquirer/prompts';
+import { platformSelectPrompt } from './platform-select-prompt.js';
 import { PLATFORMS, getPlatformSkillsDir, type Platform } from '../core/platforms.js';
 import { detectPlatforms, hasSkills, getBaseDir, type InstallScope } from '../core/detect.js';
 import {
   copyCometSkillsForPlatform,
+  copyCometRulesForPlatform,
+  installCometHooksForPlatform,
   createWorkingDirs,
   type LanguageConfig,
 } from '../core/skills.js';
-import { installCodeGraph, type CodeGraphInstallStatus } from '../core/codegraph.js';
-import { installOpenSpec } from '../core/openspec.js';
+import { installOpenSpec, isCommandAvailable } from '../core/openspec.js';
 import { installSuperpowersForPlatforms } from '../core/superpowers.js';
+import {
+  hasCodegraphProjectIndex,
+  installCodegraph,
+  resolveCodegraphCommand,
+} from '../core/codegraph.js';
+import { printVersionInfo } from '../core/version.js';
+import { t, type TranslationKey } from './i18n.js';
 
 type InitOptions = {
   yes?: boolean;
@@ -31,6 +40,7 @@ interface PlatformResult {
   openspec: InstallStatus;
   superpowers: InstallStatus;
   comet: InstallStatus;
+  codegraph: InstallStatus;
 }
 
 type ComponentPlan = {
@@ -51,39 +61,45 @@ const COMET_BANNER = [
   `  ██║     ██║   ██║██║╚██╔╝██║██╔══╝     ██║   `,
   `  ╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗   ██║   `,
   `   ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝   `,
-  `            OpenSpec + Superpowers Workflow       `,
+  `       Agent Skill Harness Phase-Guarded Automation`,
+  `               From Idea To Archive                `,
 ].join('\n');
 
-async function selectScope(options: InitOptions): Promise<InstallScope> {
+async function selectScope(options: InitOptions, lang: string): Promise<InstallScope> {
   if (options.scope) return options.scope;
   if (options.yes) return 'project';
 
   return select({
-    message: 'Install scope:',
+    message: t(lang, 'installScope'),
     choices: [
-      { name: 'Project (current directory)', value: 'project' as const },
-      { name: 'Global (home directory)', value: 'global' as const },
+      { name: t(lang, 'scopeProject'), value: 'project' as const },
+      { name: t(lang, 'scopeGlobal'), value: 'global' as const },
     ],
   });
 }
 
 async function selectLanguage(options: InitOptions): Promise<LanguageConfig> {
   if (options.language) {
-    return LANGUAGES.find((lang) => lang.id === options.language) ?? LANGUAGES[0];
+    return LANGUAGES.find((l) => l.id === options.language) ?? LANGUAGES[0];
   }
   if (options.yes) return LANGUAGES[0];
 
   const langId = await select({
-    message: 'Language for Comet skills:',
+    message: t('en', 'languagePrompt'),
     choices: LANGUAGES.map((lang) => ({ name: lang.name, value: lang.id })),
   });
 
   return LANGUAGES.find((l) => l.id === langId) ?? LANGUAGES[0];
 }
 
-async function selectPlatforms(detected: Set<string>, options: InitOptions): Promise<string[]> {
+async function selectPlatforms(
+  detected: Set<string>,
+  options: InitOptions,
+  lang: string,
+): Promise<string[]> {
   const choices = PLATFORMS.map((p) => ({
-    name: `${p.name}${detected.has(p.id) ? ' (detected)' : ''}`,
+    name: `${p.name}${detected.has(p.id) ? ` (${t(lang, 'detected')})` : ''}`,
+    summaryName: p.name,
     value: p.id,
     checked: detected.has(p.id),
   }));
@@ -93,18 +109,26 @@ async function selectPlatforms(detected: Set<string>, options: InitOptions): Pro
     return selected.length > 0 ? selected : PLATFORMS.map((p) => p.id);
   }
 
-  return checkbox({ message: 'Select platforms to set up:', choices, required: true });
+  return platformSelectPrompt({
+    message: t(lang, 'selectPlatforms'),
+    choices,
+    selectedLabel: t(lang, 'selectedPlatforms'),
+    emptyLabel: t(lang, 'noneSelected'),
+    requiredErrorLabel: t(lang, 'selectPlatformsRequired'),
+    required: true,
+  });
 }
 
 async function promptOverwriteChoice(
   componentName: string,
   platformName: string,
+  lang: string,
 ): Promise<'overwrite' | 'skip'> {
   return select({
-    message: `${componentName} already installed on ${platformName}. What to do?`,
+    message: `${componentName} ${t(lang, 'alreadyExists')} ${platformName}. ${t(lang, 'overwriteChoice')}`,
     choices: [
-      { name: 'Overwrite', value: 'overwrite' as const },
-      { name: 'Skip', value: 'skip' as const },
+      { name: t(lang, 'overwrite'), value: 'overwrite' as const },
+      { name: t(lang, 'skip'), value: 'skip' as const },
     ],
   });
 }
@@ -112,13 +136,14 @@ async function promptOverwriteChoice(
 async function promptBulkOverwriteChoice(
   platformName: string,
   components: string[],
+  lang: string,
 ): Promise<BulkOverwriteChoice> {
   return select({
-    message: `${platformName} already has ${components.join(', ')} installed. What to do?`,
+    message: `${platformName} ${t(lang, 'bulkOverwrite')} ${components.join(', ')}. ${t(lang, 'overwriteChoice')}`,
     choices: [
-      { name: 'Overwrite all existing components', value: 'overwrite-all' as const },
-      { name: 'Skip all existing components', value: 'skip-all' as const },
-      { name: 'Choose per component', value: 'choose' as const },
+      { name: t(lang, 'overwriteAll'), value: 'overwrite-all' as const },
+      { name: t(lang, 'skipAll'), value: 'skip-all' as const },
+      { name: t(lang, 'choosePer'), value: 'choose' as const },
     ],
   });
 }
@@ -150,42 +175,119 @@ function resolveAction(
   return 'install';
 }
 
-function displaySummary(results: PlatformResult[], scope: InstallScope): void {
+type NpmDepId = 'openspec' | 'superpowers' | 'codegraph';
+
+interface NpmDepState {
+  id: NpmDepId;
+  installed: boolean;
+}
+
+async function selectNpmDeps(
+  projectPath: string,
+  spPlatformIds: string[],
+  options: InitOptions,
+  lang: string,
+): Promise<Set<NpmDepId>> {
+  const openSpecInstalled = isCommandAvailable('openspec');
+  const codegraphInstalled =
+    hasCodegraphProjectIndex(projectPath) || resolveCodegraphCommand() !== null;
+  const superpowersInstalled = spPlatformIds.length === 0 ? true : undefined;
+
+  const states: NpmDepState[] = [
+    { id: 'openspec', installed: openSpecInstalled },
+    { id: 'superpowers', installed: Boolean(superpowersInstalled) },
+    { id: 'codegraph', installed: codegraphInstalled },
+  ];
+
+  const depLabel: Record<NpmDepId, (installed: boolean) => string> = {
+    openspec: (installed) =>
+      installed ? t(lang, 'npmDepOpenSpecInstalled') : t(lang, 'npmDepOpenSpec'),
+    superpowers: (installed) =>
+      installed ? t(lang, 'npmDepSuperpowersInstalled') : t(lang, 'npmDepSuperpowers'),
+    codegraph: (installed) =>
+      installed ? t(lang, 'npmDepCodegraphInstalled') : t(lang, 'npmDepCodegraph'),
+  };
+
+  const depHint: Partial<Record<NpmDepId, string>> = {
+    superpowers: t(lang, 'npmDepSuperpowersHint'),
+  };
+
+  const choices = states.map(({ id, installed }) => {
+    const choice: {
+      name: string;
+      value: NpmDepId;
+      checked: boolean;
+      description?: string;
+    } = {
+      name: depLabel[id](installed),
+      value: id,
+      checked: !installed,
+    };
+    if (depHint[id]) {
+      choice.description = depHint[id];
+    }
+    return choice;
+  });
+
+  if (options.yes) {
+    return new Set(states.filter((s) => !s.installed).map((s) => s.id));
+  }
+
+  const selected = await checkbox({
+    message: t(lang, 'selectNpmDeps'),
+    choices,
+  });
+  return new Set(selected as NpmDepId[]);
+}
+
+function displaySummary(results: PlatformResult[], scope: InstallScope, lang: string): void {
   const scopeLabel = scope === 'global' ? os.homedir() : 'project';
 
-  console.log(`\n  Comet setup complete! (scope: ${scopeLabel})\n`);
+  console.log(`\n  ${t(lang, 'setupComplete')} (scope: ${scopeLabel})\n`);
 
   const installed = results.filter(
-    (r) => r.openspec === 'installed' || r.superpowers === 'installed' || r.comet === 'installed',
+    (r) =>
+      r.openspec === 'installed' ||
+      r.superpowers === 'installed' ||
+      r.comet === 'installed' ||
+      r.codegraph === 'installed',
   );
   const skipped = results.filter(
-    (r) => r.openspec === 'skipped' && r.superpowers === 'skipped' && r.comet === 'skipped',
+    (r) =>
+      r.openspec === 'skipped' &&
+      r.superpowers === 'skipped' &&
+      r.comet === 'skipped' &&
+      r.codegraph === 'skipped',
   );
   const failed = results.filter(
-    (r) => r.openspec === 'failed' || r.superpowers === 'failed' || r.comet === 'failed',
+    (r) =>
+      r.openspec === 'failed' ||
+      r.superpowers === 'failed' ||
+      r.comet === 'failed' ||
+      r.codegraph === 'failed',
   );
 
   if (installed.length > 0) {
-    console.log(`  Installed:`);
+    console.log(`  ${t(lang, 'installed')}`);
     for (const r of installed) {
       console.log(`    ${r.platform.name} -> ${getPlatformSkillsDir(r.platform, scope)}/skills/`);
     }
   }
   if (skipped.length > 0) {
-    console.log(`  Skipped: ${skipped.map((r) => r.platform.name).join(', ')}`);
+    console.log(`  ${t(lang, 'skippedLabel')} ${skipped.map((r) => r.platform.name).join(', ')}`);
   }
   if (failed.length > 0) {
-    console.log(`  Failed: ${failed.map((r) => r.platform.name).join(', ')}`);
+    console.log(`  ${t(lang, 'failedLabel')} ${failed.map((r) => r.platform.name).join(', ')}`);
   }
 
   if (scope === 'project') {
-    console.log(`\n  Working directories: docs/superpowers/specs/, docs/superpowers/plans/`);
+    console.log(`\n  ${t(lang, 'workingDirs')}`);
   }
 
-  console.log(`\n  Get started:`);
-  console.log(`    /comet "your idea"  — Start a new change with full workflow`);
-  console.log(`    /comet-hotfix       — Quick bug fix (skip brainstorming)`);
-  console.log(`    /comet-tweak        — Small change (skip brainstorming and plan)`);
+  console.log(`\n  ${t(lang, 'getStarted')}`);
+  console.log(`    ${t(lang, 'getStartedComet')}`);
+  console.log(`    ${t(lang, 'getStartedHotfix')}`);
+  console.log(`    ${t(lang, 'getStartedTweak')}`);
   console.log(`    /comet-scan         — Index existing code and draft specs\n`);
 }
 
@@ -194,47 +296,20 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
   const log = options.json ? () => undefined : console.log;
 
   log(`\n${COMET_BANNER}\n`);
-  log(`  Setting up Comet in ${projectPath}\n`);
-
-  const detected = await detectPlatforms(projectPath);
-  const scope = await selectScope(options);
-  const language = await selectLanguage(options);
-  log(`  Language: ${language.name}`);
-
-  log(`\n  Installing CodeGraph dependency`);
-  const codegraphStatus: CodeGraphInstallStatus = await installCodeGraph(projectPath);
-  log(`  CodeGraph: ${codegraphStatus}`);
-
-  // Trigger architecture diagram generation
-  if (codegraphStatus !== 'failed' && !options.skipViz) {
-    try {
-      const { generateArchitectureDiagram } = await import('../core/architecture-generator.js');
-      const result = await generateArchitectureDiagram(
-        projectPath,
-        !options.yes,  // interactive mode: false when --yes is set
-        '.codegraph/architecture.mmd'
-      );
-
-      if (result.success) {
-        const layerNames = result.layers.map(l => {
-          const names = { layer1: 'Routes', layer2: 'Components', layer3: 'Shared', callgraph: 'CallGraph' };
-          return names[l as keyof typeof names] || l;
-        }).join(', ');
-
-        log(`  Architecture: generated (${layerNames}, ${result.nodeCount} nodes)`);
-      } else {
-        log(`  Architecture: generation failed (but CodeGraph init succeeded)`);
-        if (result.errors.length > 0) {
-          result.errors.forEach(err => console.warn(`    Warning: ${err}`));
-        }
-      }
-    } catch (error) {
-      console.warn(`  Architecture: generation error - ${(error as Error).message}`);
-      // Don't interrupt init flow, graceful degradation
-    }
+  if (!options.json) {
+    await printVersionInfo(log);
   }
 
-  const selectedPlatformIds = await selectPlatforms(detected, options);
+  const language = await selectLanguage(options);
+  const lang = language.id;
+
+  log(`  ${t(lang, 'settingUp')} ${projectPath}\n`);
+
+  const detected = await detectPlatforms(projectPath);
+  const scope = await selectScope(options, lang);
+  let codegraphStatus: InstallStatus = 'skipped';
+
+  const selectedPlatformIds = await selectPlatforms(detected, options, lang);
   if (selectedPlatformIds.length === 0) {
     if (options.json) {
       console.log(
@@ -253,7 +328,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
       );
       return;
     }
-    log('\n  No platforms selected. Exiting.\n');
+    log(`\n  ${t(lang, 'noPlatforms')}\n`);
     return;
   }
 
@@ -286,7 +361,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
       ].filter((component): component is string => Boolean(component));
 
       if (existingComponents.length > 1) {
-        const bulkChoice = await promptBulkOverwriteChoice(platform.name, existingComponents);
+        const bulkChoice = await promptBulkOverwriteChoice(platform.name, existingComponents, lang);
         if (bulkChoice !== 'choose') {
           ({ osAction, spAction, cmAction } = applyBulkOverwriteChoice(
             { osAction, spAction, cmAction },
@@ -297,13 +372,13 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
       }
 
       if (osAction === 'install' && hasOS) {
-        osAction = await promptOverwriteChoice('OpenSpec', platform.name);
+        osAction = await promptOverwriteChoice('OpenSpec', platform.name, lang);
       }
       if (spAction === 'install' && hasSP) {
-        spAction = await promptOverwriteChoice('Superpowers', platform.name);
+        spAction = await promptOverwriteChoice('Superpowers', platform.name, lang);
       }
       if (cmAction === 'install' && hasCM) {
-        cmAction = await promptOverwriteChoice('Comet', platform.name);
+        cmAction = await promptOverwriteChoice('Comet', platform.name, lang);
       }
     }
 
@@ -314,24 +389,43 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
     .filter((p) => p.osAction !== 'skip')
     .map((p) => p.platform.openspecToolId);
 
+  const spPlatformIds = plans.filter((p) => p.spAction !== 'skip').map((p) => p.platform.id);
+
+  const selectedNpmDeps = await selectNpmDeps(projectPath, spPlatformIds, options, lang);
+  const shouldInstallOpenSpecCli = selectedNpmDeps.has('openspec');
+  const shouldInstallSuperpowers = selectedNpmDeps.has('superpowers');
+  const shouldInstallCodegraphCli = selectedNpmDeps.has('codegraph');
+
   let osGlobalStatus: InstallStatus = 'skipped';
   if (osToolIds.length > 0) {
-    log(`\n  Installing OpenSpec for: ${osToolIds.join(', ')}`);
-    osGlobalStatus = await installOpenSpec(projectPath, osToolIds, scope);
-    log(`  OpenSpec: ${osGlobalStatus}`);
+    log(`\n  ${t(lang, 'installingOS')} ${osToolIds.join(', ')}`);
+    osGlobalStatus = await installOpenSpec(projectPath, osToolIds, scope, shouldInstallOpenSpecCli);
+    if (osGlobalStatus === 'skipped' && !shouldInstallOpenSpecCli) {
+      log(`  OpenSpec: ${t(lang, 'osSkippedNoCli')}`);
+    } else {
+      log(`  OpenSpec: ${osGlobalStatus}`);
+    }
   } else {
-    log(`\n  OpenSpec: all skipped`);
+    log(`\n  OpenSpec: ${t(lang, 'allSkipped')}`);
   }
 
-  const spPlatformIds = plans.filter((p) => p.spAction !== 'skip').map((p) => p.platform.id);
   let spGlobalStatus: InstallStatus = 'skipped';
 
   if (spPlatformIds.length > 0) {
-    log(`\n  Installing Superpowers for: ${spPlatformIds.join(', ')}`);
-    spGlobalStatus = await installSuperpowersForPlatforms(projectPath, scope, spPlatformIds);
-    log(`  Superpowers: ${spGlobalStatus}`);
+    if (!shouldInstallSuperpowers) {
+      log(`\n  Superpowers: ${t(lang, 'spSkippedByUser')}`);
+    } else {
+      log(`\n  ${t(lang, 'installingSP')} ${spPlatformIds.join(', ')}`);
+      spGlobalStatus = await installSuperpowersForPlatforms(
+        projectPath,
+        scope,
+        spPlatformIds,
+        true,
+      );
+      log(`  Superpowers: ${spGlobalStatus}`);
+    }
   } else {
-    log(`\n  Superpowers: all skipped`);
+    log(`\n  Superpowers: ${t(lang, 'allSkipped')}`);
   }
 
   const results: PlatformResult[] = [];
@@ -353,7 +447,28 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
       cmStatus = copied > 0 ? 'installed' : 'skipped';
       log(`  Comet -> ${platform.name}: ${cmStatus} (${copied} files) -> ${skillsPath}`);
     } else {
-      log(`  Comet -> ${platform.name}: skipped (already exists)`);
+      log(`  Comet -> ${platform.name}: skipped (${t(lang, 'alreadyExists')})`);
+    }
+
+    if (cmAction !== 'skip') {
+      const { copied: ruleCopied } = await copyCometRulesForPlatform(
+        baseDir,
+        platform,
+        cmAction === 'overwrite',
+        scope,
+      );
+      if (ruleCopied > 0) {
+        log(`  Comet rules -> ${platform.name}: ${ruleCopied} ${t(lang, 'rulesInstalled')}`);
+      }
+    }
+
+    if (cmAction !== 'skip' && platform.supportsHooks) {
+      const { installed, reason } = await installCometHooksForPlatform(baseDir, platform, scope);
+      if (installed) {
+        log(`  Comet hooks -> ${platform.name}: ${t(lang, 'hooksInstalled')}`);
+      } else if (reason) {
+        log(`  Comet hooks -> ${platform.name}: ${t(lang, 'hooksSkipped')} (${reason})`);
+      }
     }
 
     results.push({
@@ -361,7 +476,68 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
       openspec: osToolIds.includes(platform.openspecToolId) ? osGlobalStatus : 'skipped',
       superpowers: plan.spAction !== 'skip' ? spGlobalStatus : 'skipped',
       comet: cmStatus,
+      codegraph: 'skipped',
     });
+  }
+
+  const codegraphAlreadyIndexed = hasCodegraphProjectIndex(projectPath);
+
+  // JSON mode never installs CodeGraph interactively (matches pre-i18n behavior).
+  // If the project already has a .codegraph/ index, skip.
+  // Otherwise, only install when the user selected codegraph in the npm-deps prompt.
+  const shouldInstallCodegraph =
+    !options.json && !codegraphAlreadyIndexed && shouldInstallCodegraphCli;
+
+  if (shouldInstallCodegraph) {
+    log(`\n  ${t(lang, 'installingCG')}`);
+    codegraphStatus = await installCodegraph(projectPath, scope, true);
+    log(`  CodeGraph: ${codegraphStatus}`);
+    for (const r of results) {
+      r.codegraph = codegraphStatus;
+    }
+  } else if (!options.json && codegraphAlreadyIndexed) {
+    log('\n  CodeGraph: skipped (existing .codegraph index detected)');
+  } else if (!options.json) {
+    log(`\n  CodeGraph: ${t(lang, 'cgSkippedByUser')}`);
+  }
+
+  if (
+    !options.json &&
+    !options.skipViz &&
+    scope === 'project' &&
+    (codegraphAlreadyIndexed || codegraphStatus === 'installed')
+  ) {
+    try {
+      const { generateArchitectureDiagram } = await import('../core/architecture-generator.js');
+      const result = await generateArchitectureDiagram(
+        projectPath,
+        !options.yes,
+        '.codegraph/architecture.mmd',
+      );
+
+      if (result.success) {
+        const layerNames = result.layers
+          .map((layer) => {
+            const names = {
+              layer1: 'Routes',
+              layer2: 'Components',
+              layer3: 'Shared',
+              callgraph: 'CallGraph',
+            };
+            return names[layer as keyof typeof names] || layer;
+          })
+          .join(', ');
+
+        log(`  Architecture: generated (${layerNames}, ${result.nodeCount} nodes)`);
+      } else {
+        log('  Architecture: generation failed (but CodeGraph init succeeded)');
+        for (const error of result.errors) {
+          console.warn(`    Warning: ${error}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`  Architecture: generation error - ${(error as Error).message}`);
+    }
   }
 
   if (scope === 'project') {
@@ -383,6 +559,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
             openspec: result.openspec,
             superpowers: result.superpowers,
             comet: result.comet,
+            codegraph: result.codegraph,
           })),
           workingDirsCreated: scope === 'project',
         },
@@ -393,7 +570,8 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
     return;
   }
 
-  displaySummary(results, scope);
+  displaySummary(results, scope, lang);
 }
 
 export { applyBulkOverwriteChoice };
+export type { TranslationKey };

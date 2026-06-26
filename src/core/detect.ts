@@ -1,7 +1,7 @@
 import path from 'path';
 import os from 'os';
 
-import { fileExists, readDir } from '../utils/file-system.js';
+import { fileExists, readDir, readJson } from '../utils/file-system.js';
 import { PLATFORMS, getPlatformSkillsDirs, type Platform } from './platforms.js';
 
 import type { InstallScope } from './types.js';
@@ -14,18 +14,7 @@ const SUPERPOWERS_SKILLS = [
   'subagent-driven-development',
 ];
 
-function getBaseDir(scope: InstallScope, projectPath: string): string {
-  return scope === 'global' ? os.homedir() : projectPath;
-}
-
-/**
- * Check if superpowers are installed via Claude Code plugin system.
- * Looks in ~/.claude/plugins/cache/{marketplace}/superpowers/{version}/skills/
- */
-async function hasPluginSuperpowers(): Promise<boolean> {
-  const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-  const pluginsCacheDir = path.join(claudeDir, 'plugins', 'cache');
-
+async function hasSuperpowersInPluginCache(pluginsCacheDir: string): Promise<boolean> {
   const marketplaceEntries = await readDir(pluginsCacheDir);
   for (const marketplace of marketplaceEntries) {
     const superpowersDir = path.join(pluginsCacheDir, marketplace, 'superpowers');
@@ -40,6 +29,72 @@ async function hasPluginSuperpowers(): Promise<boolean> {
       }
     }
   }
+
+  return false;
+}
+
+function getBaseDir(scope: InstallScope, projectPath: string): string {
+  return scope === 'global' ? os.homedir() : projectPath;
+}
+
+/**
+ * Check if superpowers are installed via Claude Code plugin system.
+ * Looks in ~/.claude/plugins/cache/{marketplace}/superpowers/{version}/skills/
+ */
+async function hasPluginSuperpowers(): Promise<boolean> {
+  const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+  const pluginsCacheDir = path.join(claudeDir, 'plugins', 'cache');
+
+  return hasSuperpowersInPluginCache(pluginsCacheDir);
+}
+
+/**
+ * Check if superpowers are installed via Codex plugin system.
+ * Looks in ~/.codex/plugins/cache/{marketplace}/superpowers/{version}/skills/
+ */
+async function hasCodexPluginSuperpowers(): Promise<boolean> {
+  const codexDir =
+    process.env.CODEX_HOME || process.env.CODEX_CONFIG_DIR || path.join(os.homedir(), '.codex');
+  const pluginsCacheDir = path.join(codexDir, 'plugins', 'cache');
+
+  return hasSuperpowersInPluginCache(pluginsCacheDir);
+}
+
+/**
+ * Check if superpowers are installed via OpenCode plugin system.
+ * Checks multiple locations:
+ * 1. ~/.config/opencode/superpowers/skills/ — plugin source directory
+ * 2. ~/.config/opencode/opencode.json — plugin config with superpowers entry
+ */
+async function hasOpenCodePluginSuperpowers(): Promise<boolean> {
+  const opencodeDir =
+    process.env.OPENCODE_CONFIG_DIR || path.join(os.homedir(), '.config', 'opencode');
+
+  // Check plugin source directory: ~/.config/opencode/superpowers/skills/
+  const pluginSkillsDir = path.join(opencodeDir, 'superpowers', 'skills');
+  if (await fileExists(pluginSkillsDir)) {
+    const skills = await readDir(pluginSkillsDir);
+    if (SUPERPOWERS_SKILLS.some((name) => skills.includes(name))) {
+      return true;
+    }
+  }
+
+  // Check opencode.json config for superpowers plugin entry
+  const configPath = path.join(opencodeDir, 'opencode.json');
+  if (await fileExists(configPath)) {
+    try {
+      const config = (await readJson(configPath)) as Record<string, unknown>;
+      const plugins = config.plugin;
+      if (Array.isArray(plugins)) {
+        if (plugins.some((entry) => typeof entry === 'string' && entry.includes('superpowers'))) {
+          return true;
+        }
+      }
+    } catch {
+      // Invalid JSON or unreadable — skip
+    }
+  }
+
   return false;
 }
 
@@ -151,8 +206,25 @@ async function hasSkills(
     if (await hasPluginSuperpowers()) return true;
   }
 
+  // Check Codex plugin cache for plugin-installed superpowers
+  if (component === 'superpowers' && platform.id === 'codex') {
+    if (await hasCodexPluginSuperpowers()) return true;
+  }
+
+  // Check OpenCode plugin system for plugin-installed superpowers
+  if (component === 'superpowers' && platform.id === 'opencode') {
+    if (await hasOpenCodePluginSuperpowers()) return true;
+  }
+
   return false;
 }
 
-export { detectPlatforms, hasSkills, hasPluginSuperpowers, getBaseDir };
+export {
+  detectPlatforms,
+  hasSkills,
+  hasPluginSuperpowers,
+  hasCodexPluginSuperpowers,
+  hasOpenCodePluginSuperpowers,
+  getBaseDir,
+};
 export type { InstallScope };
