@@ -89,7 +89,7 @@ CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
 Language: Use the language of the user request that triggered this workflow for the Design Doc, delta spec, questions, and confirmation summary.
 
 OpenSpec artifacts are the upstream source of truth. Do not redefine requirements, do not rewrite proposal/spec.
-Your task is to perform deep technical design based on the handoff package and CodeGraph Context: implementation approach, technical risks, testing strategy, boundary conditions. CodeGraph Context is the primary code evidence; do not scan the whole source tree. Read a small number of relevant files only when Relationship Analysis / Impact / Targeted Source Excerpts are insufficient.
+Your task is to perform deep technical design based on the handoff package and CodeGraph Context: implementation approach, technical risks, testing strategy, boundary conditions. Follow the `/comet` CodeGraph Code Evidence Rule.
 If this change involves project-specific standards, component selection, component usage, design-file component mappings, security requirements, or testing standards, prefer the constraints provided by skills listed in `openspec/comet.yaml` `context_skills`; do not paste full context-skill guidance into the Design Doc.
 If you find OpenSpec delta spec missing acceptance scenarios, you may only propose Spec Patches and write them back to OpenSpec delta spec; do not create a second requirements spec in the Design Doc.
 
@@ -112,7 +112,7 @@ If the Superpowers `brainstorming` skill is unavailable, stop the process and pr
 
 After the skill loads, follow its guidance to produce design proposals (presented as conversation):
 - Technical approach: architecture, data flow, key technology choices and risks
-- Testing strategy: reference `openspec/changes/<name>/test-cases.md` and identify which cases need unit, integration, end-to-end, visual, manual, or other evidence
+- Testing strategy: reference `openspec/changes/<name>/test-cases.md` and identify key verification evidence according to the `/comet` Verification Matrix Rule
 - If acceptance scenarios need supplementing, indicate delta spec changes to be written back
 
 The brainstorming phase does not write to the Design Doc file; it only produces design proposals for Step 1c user confirmation. Only after confirmation should `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` be created and delta spec written back.

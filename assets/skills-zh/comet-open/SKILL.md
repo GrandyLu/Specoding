@@ -36,7 +36,7 @@ fi
 ```
 Language: 使用触发本次工作流的用户请求语言输出。
 CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
-Use CodeGraph Context as primary codebase evidence. Do not scan the whole repository. Read source files only when CodeGraph points to them or behavior remains ambiguous.
+遵循 `/comet` 的 CodeGraph 代码证据规则。
 ```
 
 技能加载后，按其指引自由探索问题空间，所有问题和总结均使用该语言。
@@ -51,7 +51,7 @@ Use CodeGraph Context as primary codebase evidence. Do not scan the whole reposi
 
 ```
 Language: 使用触发本次工作流的用户请求语言输出 proposal.md、design.md、tasks.md 和必要的 delta spec。
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。生成 proposal/design/tasks 时优先依据 Relationship Analysis、Impact 和 Targeted Source Excerpts，不要全量扫描源码。
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE。遵循 `/comet` 的 CodeGraph 代码证据规则生成 proposal/design/tasks。
 ```
 
 确认以下产物已创建：
@@ -84,7 +84,7 @@ fi
 "$COMET_BASH" "$COMET_STATE" init <name> full
 ```
 
-`init` 会创建 `test-cases.md` 模板，并在 `.comet.yaml` 中写入 `test_cases: openspec/changes/<name>/test-cases.md`。在进入 build 前必须补全该文档：测试用例可以是单元、集成、端到端、视觉、手动、构建、lint、可访问性或其他适合该 change 的验证方式；不要求为整个项目维护全量测试用例。
+`init` 会创建 `test-cases.md` 模板，并在 `.comet.yaml` 中写入 `test_cases: openspec/changes/<name>/test-cases.md`。进入 build 前按 `/comet` 的验证矩阵规则补全该文档。
 
 ### 3. 入口状态验证
 
@@ -118,7 +118,7 @@ AskUserQuestion 必须以单选题形式呈现，包含以下摘要和选项：
 - **proposal.md**：问题背景、目标、范围
 - **design.md**：高层架构决策、方案选型
 - **tasks.md**：任务数量和关键任务描述
-- **test-cases.md**：关键验收场景和验证方式；允许非单元测试形式的验证证据
+- **test-cases.md**：按验证矩阵规则列出关键验收场景和证据方式
 
 **选项**：
 - 「确认，继续下一阶段」— 产物符合预期，执行阶段守卫流转

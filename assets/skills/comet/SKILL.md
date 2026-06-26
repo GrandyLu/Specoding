@@ -39,6 +39,10 @@ Every step that needs to understand, locate, design, plan, implement, or verify 
 
 `$COMET_CODEGRAPH_CONTEXT_FILE` is the primary code evidence passed from Comet to OpenSpec / Superpowers. ARGUMENTS must explicitly include this file and require downstream skills to prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts. Do not scan the full source tree. Only read a small number of CodeGraph-directed files when CodeGraph evidence is insufficient to explain behavior.
 
+### Verification Matrix Rule
+
+`openspec/changes/<name>/test-cases.md` is the change-level verification matrix. It records key acceptance scenarios, related tasks, verification methods, pass criteria, and evidence locations. It is not a whole-project test catalog and does not replace Superpowers `test-driven-development` or `verification-before-completion`; phase skills only need to reference this matrix, supplement entries when needed, and write back actual evidence.
+
 ### Automatic Phase Detection
 
 **Step 0: Active Change Discovery and Intent Detection**

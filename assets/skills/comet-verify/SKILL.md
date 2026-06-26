@@ -98,10 +98,10 @@ When scale assessment result is "small", skip `openspec-verify-change` and direc
 
 1. All tasks.md tasks completed `[x]`
 2. Changed files match tasks.md descriptions (`git diff --stat` / `git diff --cached --stat` / `git diff --stat <base-ref>...HEAD` compared against tasks content)
-3. Test/verification cases related to this change in `openspec/changes/<name>/test-cases.md` have results or explicit uncovered rationale
-4. Use Impact / Affected Tests / Targeted Source Excerpts in `$COMET_CODEGRAPH_CONTEXT_FILE` to verify the affected scope without scanning the full source tree
+3. According to the `/comet` Verification Matrix Rule, test/verification cases related to this change in `openspec/changes/<name>/test-cases.md` have results or explicit uncovered rationale
+4. Follow the `/comet` CodeGraph Code Evidence Rule and use `$COMET_CODEGRAPH_CONTEXT_FILE` to verify the affected scope
 5. Build passes (run project-specific build command, e.g., `npm run build`, `mvn compile`, `cargo build`, etc.)
-6. Related test or verification evidence passes; this may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other evidence appropriate to this change
+6. Related test or verification evidence passes; evidence type follows the `/comet` Verification Matrix Rule
 7. No obvious security issues (no hardcoded keys, no new unsafe operations)
 
 **Pass criteria**: All 7 items OK, no CRITICAL issues.
@@ -130,7 +130,7 @@ When scale assessment result is "large":
 When invoking `openspec-verify-change`, ARGUMENTS must include:
 
 ```text
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts as implementation evidence; do not search the full codebase. Only read a small number of CodeGraph-directed files when CodeGraph evidence is insufficient.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule to verify implementation evidence.
 ```
 
 After the skill loads, follow its guidance to verify. Check items:
@@ -155,6 +155,10 @@ When verification does not pass: report missing items, enter Step 1b verificatio
   - Option A: Append "Implementation Divergence" section to design doc recording deviation reason. Option A is a verify phase allowed artifact; after writing, must not re-trigger Step 1b dirty-worktree decision due to that design doc change
   - Option B: After user selects B, run `"$COMET_BASH" "$COMET_STATE" transition <change-name> verify-fail`, then invoke `/comet-build`; `/comet-build`'s Spec Incremental Update rules will load the Superpowers `brainstorming` skill to update Design Doc + delta spec
   - Option C: Confirm deviation is acceptable, continue verification (design doc will be marked as `superseded-by-main-spec` during archiving)
+
+### 2c. Fresh Verification Before Completion (Superpowers)
+
+Before writing a PASS verification report, setting `branch_status: handled`, running the verify guard, invoking `finishing-a-development-branch`, committing, creating a PR, or claiming completion, must use the Skill tool to load the Superpowers `verification-before-completion` skill. Comet verify owns phase exit; this skill owns fresh verification evidence. Record the just-run commands, exit codes, key output summaries, and conclusions in the verification report. Do not use stale logs, speculative language, or "should pass" as completion evidence.
 
 ### 3. Finishing (Superpowers)
 
@@ -192,6 +196,7 @@ mkdir -p docs/superpowers/reports
 ## Exit Conditions
 
 - Verification report passed
+- The Skill tool has been used to load the Superpowers `verification-before-completion` skill, and the verification report records fresh verification evidence (commands, exit codes, key output summaries, and conclusions)
 - Branch handled
 - `verification_report` in `.comet.yaml` points to an existing verification report file
 - `branch_status: handled` in `.comet.yaml`

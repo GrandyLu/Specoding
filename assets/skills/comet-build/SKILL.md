@@ -46,14 +46,14 @@ When loading the skill, ARGUMENTS must include:
 
 ```
 Language: Use the language of the user request that triggered this workflow.
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. When planning, prefer Relationship Analysis, Impact, Affected Tests, and Targeted Source Excerpts to locate implementation points; do not scan the whole source tree.
-Test Cases: openspec/changes/<name>/test-cases.md. Every implementation task in the plan must link to one or more test/verification cases. Cases may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other evidence appropriate to this change.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule.
+Test Cases: openspec/changes/<name>/test-cases.md. Follow the `/comet` Verification Matrix Rule; every implementation task in the plan must link to corresponding verification items.
 ```
 
 After the skill loads, follow its guidance to create a plan. Plan files and execution feedback must use the language of the user request that triggered this workflow. Plan requirements:
 - Save to `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`
 - Reference design document, break down into executable tasks
-- Reference `openspec/changes/<name>/test-cases.md` and state each task's verification method; do not require a whole-project test-case catalog
+- Reference `openspec/changes/<name>/test-cases.md` and state each task's verification method
 - **Plan file header must contain associated metadata**:
 
 ```yaml
@@ -177,12 +177,17 @@ Before loading `subagent-driven-development` or `executing-plans`, refresh build
 
 Before loading the execution skill, read the `openspec/comet.yaml` `context_skills` list. If one or more project context skills are configured, use the Skill tool to load each of them; these skills should provide development standards, architecture constraints, internal component APIs, design-file mapping rules, security requirements, testing standards, or other project constraints. If none are configured or loaded skills do not provide usable context, record "project did not configure context skills" or "context skills did not provide usable project context" and continue execution, but do not claim the implementation followed project-specific constraints that were not provided.
 
+**TDD Fusion Gate (Superpowers + Comet)**:
+
+If planned tasks include automatable feature work, bug fixes, refactoring, or behavior changes, must use the Skill tool to load the Superpowers `test-driven-development` skill and follow its RED/GREEN/REFACTOR loop. `test-cases.md` only records the verification matrix and evidence: TDD-suitable cases record RED/GREEN/REFACTOR evidence, while non-TDD cases record the not-applicable reason and alternative verification method.
+
 When loading `subagent-driven-development` or `executing-plans`, ARGUMENTS must include the same Language constraint and CodeGraph constraint:
 
 ```text
 Language: Use the language of the user request that triggered this workflow.
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. First use CodeGraph to locate files to edit, callers, callees, and affected tests; read or modify only files pointed to by CodeGraph or explicitly required by the plan. Do not scan the whole repository.
-Test Cases: openspec/changes/<name>/test-cases.md. Before executing a task, confirm its corresponding test/verification cases and supplement or correct the matrix when needed; do not force every verification into unit-test code.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule.
+Test Cases: openspec/changes/<name>/test-cases.md. Confirm, supplement, or correct corresponding verification items according to the `/comet` Verification Matrix Rule.
+TDD Discipline: TDD-suitable cases follow Superpowers `test-driven-development`, with RED/GREEN/REFACTOR evidence written back to `test-cases.md` or task commit notes; non-TDD cases record the reason and alternative verification evidence.
 ```
 
 After the skill loads, follow its guidance to execute:
@@ -214,7 +219,7 @@ When loading `brainstorming` for a medium-scale Spec incremental update, ARGUMEN
 
 ```text
 Language: Use the language of the user request that triggered this workflow.
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Use CodeGraph impact/callers/callees to determine the expanded impact area; do not scan the whole source tree.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule to determine the expanded impact area.
 ```
 
 **50% Threshold Determination**: Using initial task count in tasks.md as baseline, if new tasks exceed half of that total, it's considered outside original plan scope, **must use the AskUserQuestion tool to pause and wait for the user to decide whether to split into a new change**. Must not just output a text prompt and then continue executing.
@@ -241,6 +246,7 @@ Build is the longest phase and may span many tasks. To support resume after cont
 
 - All tasks.md checked
 - `test-cases.md` completed for this change, with every completed task linked to at least one verification case or an explicit not-applicable rationale
+- For automatable feature work, bug fixes, refactoring, or behavior changes, the Skill tool has been used to load the Superpowers `test-driven-development` skill and RED/GREEN/REFACTOR evidence has been recorded; tasks where TDD is not applicable have a reason and alternative verification method recorded in `test-cases.md`
 - Code committed
 - Project-specific build/tests explicitly run and pass; do not rely only on guard auto-detection
 - `isolation` has been written as `branch` or `worktree`

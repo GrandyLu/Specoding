@@ -36,7 +36,7 @@ When loading the skill, ARGUMENTS must include:
 ```
 Language: Use the language of the user request that triggered this workflow.
 CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE
-Use CodeGraph Context as primary codebase evidence. Do not scan the whole repository. Read source files only when CodeGraph points to them or behavior remains ambiguous.
+Follow the `/comet` CodeGraph Code Evidence Rule.
 ```
 
 After the skill loads, freely explore the problem space following its guidance. All questions and summaries must use that language.
@@ -51,7 +51,7 @@ When loading the skill, ARGUMENTS must include:
 
 ```
 Language: Use the language of the user request that triggered this workflow for proposal.md, design.md, tasks.md, and any required delta specs.
-CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Prefer Relationship Analysis, Impact, and Targeted Source Excerpts when creating proposal/design/tasks; do not scan the whole source tree.
+CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE. Follow the `/comet` CodeGraph Code Evidence Rule when creating proposal/design/tasks.
 ```
 
 Confirm the following artifacts have been created:
@@ -84,7 +84,7 @@ fi
 "$COMET_BASH" "$COMET_STATE" init <name> full
 ```
 
-`init` creates a `test-cases.md` template and writes `test_cases: openspec/changes/<name>/test-cases.md` to `.comet.yaml`. Before entering build, complete this document with per-change verification cases. Cases may be unit, integration, end-to-end, visual, manual, build, lint, accessibility, or other evidence appropriate to this change; do not maintain a whole-project test catalog here.
+`init` creates a `test-cases.md` template and writes `test_cases: openspec/changes/<name>/test-cases.md` to `.comet.yaml`. Before entering build, complete this document according to the `/comet` Verification Matrix Rule.
 
 ### 3. Entry State Verification
 
@@ -118,7 +118,7 @@ AskUserQuestion must be presented as a single-select question with the following
 - **proposal.md**: problem background, goals, scope
 - **design.md**: high-level architecture decisions, approach selection
 - **tasks.md**: task count and key task descriptions
-- **test-cases.md**: key acceptance scenarios and verification methods; non-unit-test evidence is allowed
+- **test-cases.md**: key acceptance scenarios and evidence methods according to the Verification Matrix Rule
 
 **Options**:
 - "Confirm, proceed to next phase" — artifacts meet expectations, execute phase guard transition

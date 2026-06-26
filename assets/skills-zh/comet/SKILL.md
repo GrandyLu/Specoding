@@ -39,6 +39,10 @@ agent 做决策只需读本节，参考附录按需查阅。
 
 `$COMET_CODEGRAPH_CONTEXT_FILE` 是 Comet 调用 OpenSpec / Superpowers 时的主要代码证据。ARGUMENTS 必须显式传递该文件，并要求下游优先使用 Relationship Analysis、Impact、Affected Tests 和 Targeted Source Excerpts。不得全量扫描源码；只有 CodeGraph 证据不足以解释行为时，才按 CodeGraph 指向读取少量相关文件。
 
+### 验证矩阵规则
+
+`openspec/changes/<name>/test-cases.md` 是 change 级验证矩阵，记录关键验收场景、关联任务、验证方式、通过标准和证据位置。它不是全项目测试目录，也不替代 Superpowers 的 `test-driven-development` 或 `verification-before-completion`；阶段 skill 只需引用该矩阵、按需补充条目，并写回实际证据。
+
 ### 阶段自动检测
 
 **Step 0: 活跃 Change 发现与意图判定**

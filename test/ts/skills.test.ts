@@ -268,6 +268,12 @@ describe('skills', () => {
       expect(zhBuild).toContain('CRITICAL review 发现必须先修复');
       expect(zhBuild).toContain('非 CRITICAL review 发现');
 
+      // HIGH: build phase should fuse Superpowers TDD discipline with Comet test matrix.
+      expect(zhBuild).toContain('必须使用 Skill 工具加载 Superpowers `test-driven-development` 技能');
+      expect(zhBuild).toContain('`test-cases.md` 只记录验证矩阵和证据');
+      expect(zhBuild).toContain('RED/GREEN/REFACTOR 证据');
+      expect(zhBuild).not.toContain('调用 `test-driven-development` 时，ARGUMENTS 必须包含');
+
       // Component context skills must be project-configured instead of bundled placeholders.
       expect(zhDesign).toContain('`openspec/comet.yaml` 的 `context_skills` 列表');
       expect(zhBuild).toContain('`openspec/comet.yaml` 的 `context_skills` 列表');
@@ -405,6 +411,10 @@ describe('skills', () => {
       expect(enBuild).toContain('build → verify');
       expect(enBuild).toContain('CRITICAL review findings must be fixed first');
       expect(enBuild).toContain('non-CRITICAL review findings');
+      expect(enBuild).toContain('must use the Skill tool to load the Superpowers `test-driven-development` skill');
+      expect(enBuild).toContain('`test-cases.md` only records the verification matrix and evidence');
+      expect(enBuild).toContain('RED/GREEN/REFACTOR evidence');
+      expect(enBuild).not.toContain('When invoking `test-driven-development`, ARGUMENTS must include');
 
       // Component context skills must be project-configured instead of bundled placeholders.
       expect(enDesign).toContain('`openspec/comet.yaml` `context_skills` list');
@@ -554,6 +564,10 @@ describe('skills', () => {
       expect(manifest.skills).not.toContain('comet-component-library/SKILL.md');
 
       for (const languageDir of ['skills', 'skills-zh'] as const) {
+        const comet = await fs.readFile(
+          path.resolve('assets', languageDir, 'comet', 'SKILL.md'),
+          'utf-8',
+        );
         const open = await fs.readFile(
           path.resolve('assets', languageDir, 'comet-open', 'SKILL.md'),
           'utf-8',
@@ -585,6 +599,37 @@ describe('skills', () => {
         expect(build).toContain('Test Cases: openspec/changes/<name>/test-cases.md');
         expect(build).toContain('canonical_spec_hash');
         expect(verify).toContain('openspec/changes/<name>/test-cases.md');
+        if (languageDir === 'skills') {
+          expect(comet).toContain('CodeGraph Code Evidence Rule');
+          expect(comet).toContain('Verification Matrix Rule');
+          expect(build).toContain('CodeGraph Code Evidence Rule');
+          expect(verify).toContain('CodeGraph Code Evidence Rule');
+          expect(open).toContain('Verification Matrix Rule');
+          expect(build).toContain('Verification Matrix Rule');
+          expect(verify).toContain('Verification Matrix Rule');
+        } else {
+          expect(comet).toContain('CodeGraph 代码证据规则');
+          expect(comet).toContain('验证矩阵规则');
+          expect(build).toContain('CodeGraph 代码证据规则');
+          expect(verify).toContain('CodeGraph 代码证据规则');
+          expect(open).toContain('验证矩阵规则');
+          expect(build).toContain('验证矩阵规则');
+          expect(verify).toContain('验证矩阵规则');
+        }
+        expect(build).toContain('CodeGraph Context: $COMET_CODEGRAPH_CONTEXT_FILE');
+        expect(build).not.toContain('do not scan the whole source tree');
+        expect(build).not.toContain('不得全量扫描源码');
+        expect(verify).not.toContain('do not search the full codebase');
+        expect(verify).not.toContain('不得全量搜索 codebase');
+        expect(open).not.toContain('Cases may be unit, integration, end-to-end, visual, manual, build, lint, accessibility');
+        expect(open).not.toContain('测试用例可以是单元、集成、端到端、视觉、手动、构建、lint、可访问性');
+        expect(verify).not.toContain('unit, integration, end-to-end, visual, manual, build, lint, accessibility');
+        expect(verify).not.toContain('单元、集成、端到端、视觉、手动、构建、lint、可访问性');
+        expect(build).toContain('test-driven-development');
+        expect(verify).toContain('verification-before-completion');
+        expect(verify).toContain('fresh verification evidence');
+        expect(verify).not.toContain('When invoking `verification-before-completion`, ARGUMENTS must include');
+        expect(verify).not.toContain('调用 `verification-before-completion` 时，ARGUMENTS 必须包含');
       }
     });
   });
