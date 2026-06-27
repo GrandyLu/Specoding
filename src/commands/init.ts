@@ -20,6 +20,7 @@ import {
 } from '../core/codegraph.js';
 import { printVersionInfo } from '../core/version.js';
 import { t, type TranslationKey } from './i18n.js';
+import { vizCommand } from './viz.js';
 
 type InitOptions = {
   yes?: boolean;
@@ -508,33 +509,20 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
     (codegraphAlreadyIndexed || codegraphStatus === 'installed')
   ) {
     try {
-      const { generateArchitectureDiagram } = await import('../core/architecture-generator.js');
-      const result = await generateArchitectureDiagram(
-        projectPath,
-        !options.yes,
-        '.codegraph/architecture.mmd',
-      );
+      const result = await vizCommand(projectPath, { yes: options.yes });
+      const layerNames = result.layers
+        .map((layer) => {
+          const names = {
+            layer1: 'Routes',
+            layer2: 'Components',
+            layer3: 'Shared',
+            callgraph: 'CallGraph',
+          };
+          return names[layer as keyof typeof names] || layer;
+        })
+        .join(', ');
 
-      if (result.success) {
-        const layerNames = result.layers
-          .map((layer) => {
-            const names = {
-              layer1: 'Routes',
-              layer2: 'Components',
-              layer3: 'Shared',
-              callgraph: 'CallGraph',
-            };
-            return names[layer as keyof typeof names] || layer;
-          })
-          .join(', ');
-
-        log(`  Architecture: generated (${layerNames}, ${result.nodeCount} nodes)`);
-      } else {
-        log('  Architecture: generation failed (but CodeGraph init succeeded)');
-        for (const error of result.errors) {
-          console.warn(`    Warning: ${error}`);
-        }
-      }
+      log(`  Architecture: generated (${layerNames}, ${result.nodeCount} nodes)`);
     } catch (error) {
       console.warn(`  Architecture: generation error - ${(error as Error).message}`);
     }

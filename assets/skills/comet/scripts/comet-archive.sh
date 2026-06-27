@@ -7,6 +7,7 @@ set -euo pipefail
 
 COMET_BASH="${COMET_BASH:-${BASH:-bash}}"
 COMET_OPENSPEC="${COMET_OPENSPEC:-openspec}"
+COMET_CLI="${COMET_CLI:-comet}"
 
 red() { echo -e "\033[31m$1\033[0m" >&2; }
 green() { echo -e "\033[32m$1\033[0m" >&2; }
@@ -295,19 +296,26 @@ else
   fi
 fi
 
-# --- Step 9: Sync CodeGraph index ---
+# --- Step 8: Sync CodeGraph index ---
 
 if [ "$DRY_RUN" -eq 1 ]; then
   step_dry_run "Would sync CodeGraph index"
+  step_dry_run "Would refresh .codegraph/architecture.mmd"
 else
   if codegraph sync; then
     step_ok "CodeGraph index synced"
+    if command -v "$COMET_CLI" >/dev/null 2>&1 && "$COMET_CLI" viz . --yes; then
+      step_ok "Architecture diagram refreshed: .codegraph/architecture.mmd"
+    else
+      yellow "  [WARN] Architecture diagram refresh failed; archive remains complete."
+      yellow "  [WARN] Run manually: comet viz . --yes"
+    fi
   else
     step_fail "CodeGraph index synced"
   fi
 fi
 
-# --- Step 10: Print summary ---
+# --- Step 9: Print summary ---
 
 echo "" >&2
 if [ "$DRY_RUN" -eq 1 ]; then

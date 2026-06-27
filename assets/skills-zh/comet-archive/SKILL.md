@@ -66,10 +66,12 @@ fi
 5. 校验主 spec 未残留 delta-only section 标题
 6. 通过 `comet-state transition <archive-name> archived` 更新 `archived: true`
 7. 执行 `codegraph sync` 同步归档后的 CodeGraph 索引
+8. `codegraph sync` 成功后运行 `comet viz . --yes`，刷新 `.codegraph/architecture.mmd`
 
 如脚本返回非零退出码，报告错误并停止。
 如脚本返回零退出码，归档完成。
 脚本摘要中的 `X/Y steps succeeded` 以真实执行步骤计数，不会因 delta spec 同步或文档标注重复累计。
+架构图刷新失败只输出警告，不撤销已经完成的归档；可按警告提示手动运行 `comet viz . --yes` 恢复派生产物。
 
 脚本会调用 OpenSpec 归档能力按 `ADDED/MODIFIED/REMOVED/RENAMED` 语义合并主 spec，并在归档后校验主 spec 中没有残留 delta-only section 标题。
 
@@ -88,6 +90,7 @@ brainstorming → delta spec → 实施 → 验证 → 主 spec 合并 → desig
 - 归档目录 `openspec/changes/archive/YYYY-MM-DD-<change-name>/` 存在
 - 归档后的 `.comet.yaml` 中 `archived: true`
 - `codegraph sync` 已在归档成功路径中执行完成
+- `.codegraph/architecture.mmd` 已刷新；若刷新失败，归档摘要已提供手动恢复命令
 
 归档脚本会把 `openspec/changes/<name>/` 移动到 `openspec/changes/archive/YYYY-MM-DD-<name>/`。
 

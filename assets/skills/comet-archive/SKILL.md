@@ -66,10 +66,12 @@ The script automatically executes:
 5. Main spec guard against leaked delta-only section headings
 6. Update `archived: true` through `comet-state transition <archive-name> archived`
 7. Run `codegraph sync` to refresh the post-archive CodeGraph index
+8. Run `comet viz . --yes` after `codegraph sync` succeeds to refresh `.codegraph/architecture.mmd`
 
 If script returns non-zero exit code, report error and stop.
 If script returns zero exit code, archive is complete.
 The summary `X/Y steps succeeded` counts real executed steps and does not double-count delta spec sync or document annotation.
+A visualization failure emits a warning and does not undo a completed archive; follow the warning and run `comet viz . --yes` manually to restore the derived artifact.
 
 The script calls OpenSpec archive to merge `ADDED/MODIFIED/REMOVED/RENAMED` delta semantics into main specs, then verifies main specs do not contain delta-only section headings.
 
@@ -88,6 +90,7 @@ brainstorming → delta spec → implementation → verification → main spec m
 - Archive directory `openspec/changes/archive/YYYY-MM-DD-<change-name>/` exists
 - Archived `.comet.yaml` contains `archived: true`
 - `codegraph sync` completed on the successful archive path
+- `.codegraph/architecture.mmd` was refreshed, or the archive summary provided the manual recovery command
 
 The archive script moves `openspec/changes/<name>/` to `openspec/changes/archive/YYYY-MM-DD-<name>/`.
 

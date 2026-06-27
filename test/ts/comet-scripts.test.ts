@@ -102,6 +102,7 @@ async function createFakeOpenSpecArchive(tmpDir: string, archiveDateScript = 'da
   const fakeOpenSpec = path.join(fakeBinDir, 'openspec');
   const fakeCodeGraph = path.join(fakeBinDir, 'codegraph');
   const logFile = path.join(fakeBinDir, 'openspec-args.log');
+  const commandLog = path.join(fakeBinDir, 'commands.log');
   await writeFile(
     fakeOpenSpec,
     [
@@ -141,10 +142,27 @@ async function createFakeOpenSpecArchive(tmpDir: string, archiveDateScript = 'da
   await fs.chmod(fakeOpenSpec, 0o755);
   await writeFile(
     fakeCodeGraph,
-    ['#!/bin/bash', 'set -euo pipefail', '[ "${1:-}" = "sync" ]', ''].join('\n'),
+    [
+      '#!/bin/bash',
+      'set -euo pipefail',
+      '[ "${1:-}" = "sync" ]',
+      `printf 'codegraph %s\\n' "$*" >> "${toBashPath(commandLog)}"`,
+      '',
+    ].join('\n'),
   );
   await fs.chmod(fakeCodeGraph, 0o755);
-  return { fakeOpenSpec, logFile, fakeBinDir };
+  const fakeComet = path.join(fakeBinDir, 'comet');
+  await writeFile(
+    fakeComet,
+    [
+      '#!/bin/bash',
+      'set -euo pipefail',
+      `printf 'comet %s\\n' "$*" >> "${toBashPath(commandLog)}"`,
+      '',
+    ].join('\n'),
+  );
+  await fs.chmod(fakeComet, 0o755);
+  return { fakeOpenSpec, logFile, commandLog, fakeBinDir, fakeComet };
 }
 
 const describeShell = bashCommand ? describe : describe.skip;
@@ -2254,7 +2272,8 @@ describeShell('comet shell scripts', () => {
 
   it('reports accurate archive step counts when syncing and annotating', async () => {
     const archiveScript = path.join(tmpDir, 'scripts', 'comet-archive.sh');
-    const { fakeOpenSpec, logFile, fakeBinDir } = await createFakeOpenSpecArchive(tmpDir);
+    const { fakeOpenSpec, logFile, commandLog, fakeBinDir } =
+      await createFakeOpenSpecArchive(tmpDir);
     await createChange(
       tmpDir,
       'ready-to-archive',
@@ -2311,8 +2330,64 @@ describeShell('comet shell scripts', () => {
     });
 
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain('Archive complete. 8/8 steps succeeded.');
+    expect(result.stderr).toContain('Archive complete. 9/9 steps succeeded.');
     await expect(fs.readFile(logFile, 'utf-8')).resolves.toBe('archive ready-to-archive --yes\n');
+    await expect(fs.readFile(commandLog, 'utf-8')).resolves.toBe(
+      'codegraph sync\ncomet viz . --yes\n',
+    );
+  }, 20_000);
+
+  it('keeps a completed archive successful when Mermaid refresh fails', async () => {
+    const archiveScript = path.join(tmpDir, 'scripts', 'comet-archive.sh');
+    const { fakeOpenSpec, fakeBinDir, fakeComet } = await createFakeOpenSpecArchive(
+      tmpDir,
+      'printf 2026-05-21',
+    );
+    await writeFile(
+      fakeComet,
+      ['#!/bin/bash', 'set -euo pipefail', 'echo "viz failed" >&2', 'exit 1', ''].join('\n'),
+    );
+    await fs.chmod(fakeComet, 0o755);
+    await createChange(
+      tmpDir,
+      'viz-warning',
+      [
+        'workflow: full',
+        'phase: archive',
+        'build_mode: executing-plans',
+        'build_pause: null',
+        'tdd_mode: null',
+        'isolation: branch',
+        'verify_mode: full',
+        'design_doc: null',
+        'plan: null',
+        'verify_result: pass',
+        'verification_report: docs/superpowers/reports/viz-warning.md',
+        'branch_status: handled',
+        'verified_at: 2026-05-21',
+        'archived: false',
+        '',
+      ].join('\n'),
+    );
+    await writeFile(
+      path.join(tmpDir, 'docs', 'superpowers', 'reports', 'viz-warning.md'),
+      'PASS\n',
+    );
+
+    const result = runBash(tmpDir, archiveScript, ['viz-warning'], {
+      COMET_OPENSPEC: toBashPath(fakeOpenSpec),
+      PATH: `${toBashPath(fakeBinDir)}:${process.env.PATH ?? ''}`,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain('Architecture diagram refresh failed');
+    expect(result.stderr).toContain('comet viz . --yes');
+    await expect(
+      fs.readFile(
+        path.join(tmpDir, 'openspec', 'changes', 'archive', '2026-05-21-viz-warning', '.comet.yaml'),
+        'utf8',
+      ),
+    ).resolves.toContain('archived: true');
   }, 20_000);
 
   it('merges delta specs without copying delta-only requirement headings into main specs', async () => {

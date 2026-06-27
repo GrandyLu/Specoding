@@ -12,6 +12,7 @@ All notable changes to @rpamis/comet will be documented in this file.
 
 ### Changed
 
+- **Archive architecture refresh**: Successful archives now regenerate `.codegraph/architecture.mmd` after synchronizing CodeGraph so the Mermaid architecture view stays aligned with completed changes; refresh failures warn without undoing an otherwise completed archive.
 - **CodeGraph sync guidance**: Updated archive and workflow skills so agents refresh CodeGraph context after spec/archive changes and treat CodeGraph evidence as an explicit project artifact.
 - **Full workflow quality defaults**: Full workflow changes now default to `tdd_mode: tdd` and `review_mode: thorough`, while hotfix/tweak presets keep their lighter direct/off defaults; English and Chinese build guidance now describe the same override and review-gate behavior.
 - **Project skill hook routing**: Clarified that `context_skills` load only during design/build execution context and `review_skills` load before code review, including subagent review paths.
@@ -23,6 +24,7 @@ All notable changes to @rpamis/comet will be documented in this file.
 
 ### Tests
 
+- **Mermaid refresh regression coverage**: Added `comet viz`, init reuse, archive success/failure, and bilingual Skill contract coverage for automatic architecture refresh.
 - **CodeGraph and handoff regression coverage**: Added tests for `/comet-scan` assets, CodeGraph context script packaging, architecture diagram generation, `comet init --skip-viz`, project skill config defaults, and canonical handoff hash guard behavior.
 - **Project skill hook routing coverage**: Added regression checks that keep `context_skills` and `review_skills` separated across design, build, verify, and subagent review flows.
 

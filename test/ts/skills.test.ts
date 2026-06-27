@@ -597,6 +597,9 @@ describe('skills', () => {
       expect(zhArchive).toContain(
         '`"$COMET_BASH" "$COMET_STATE" transition <change-name> archive-reopen`',
       );
+      expect(zhArchive).toContain('`codegraph sync` 成功后运行 `comet viz . --yes`');
+      expect(zhArchive).toContain('`.codegraph/architecture.mmd`');
+      expect(zhArchive).toContain('架构图刷新失败只输出警告，不撤销已经完成的归档');
       expect(zhVerify).toContain('不得因为验证已通过就自动归档');
       expect(zhHotfix).toContain(
         '满足升级条件时**必须按 `comet/reference/decision-point.md` 的协议暂停并等待用户明确确认**升级为完整 `/comet` 流程',
@@ -921,6 +924,11 @@ describe('skills', () => {
       expect(enArchive).toContain('Do not archive yet');
       expect(enArchive).toContain(
         '`"$COMET_BASH" "$COMET_STATE" transition <change-name> archive-reopen`',
+      );
+      expect(enArchive).toContain('Run `comet viz . --yes` after `codegraph sync` succeeds');
+      expect(enArchive).toContain('`.codegraph/architecture.mmd`');
+      expect(enArchive).toContain(
+        'A visualization failure emits a warning and does not undo a completed archive',
       );
       expect(enVerify).toContain('Must not automatically archive just because verification passed');
       expect(enHotfix).toContain(

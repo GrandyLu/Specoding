@@ -6,6 +6,7 @@ import { dashboardCommand } from '../commands/dashboard.js';
 import { doctorCommand } from '../commands/doctor.js';
 import { updateCommand } from '../commands/update.js';
 import { uninstallCommand } from '../commands/uninstall.js';
+import { vizCommand } from '../commands/viz.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
@@ -39,6 +40,15 @@ program
       }
       throw error;
     }
+  });
+
+program
+  .command('viz [path]')
+  .description('Generate or refresh the project architecture Mermaid diagram')
+  .option('--yes', 'Run non-interactively')
+  .option('--json', 'Output as JSON')
+  .action(async (targetPath = '.', options) => {
+    await vizCommand(targetPath, options);
   });
 
 program
