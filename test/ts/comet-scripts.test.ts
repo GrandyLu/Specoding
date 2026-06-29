@@ -351,6 +351,29 @@ describeShell('comet shell scripts', () => {
     expect(yaml).toContain('review_mode: standard');
   }, 20_000);
 
+  it('snapshots tdd_mode from .comet/config.yaml when initializing a full change', async () => {
+    await writeFile(path.join(tmpDir, '.comet', 'config.yaml'), 'tdd_mode: direct\n');
+
+    const result = runBash(tmpDir, stateScript, ['init', 'tdd-direct', 'full']);
+    const yaml = await fs.readFile(
+      path.join(tmpDir, 'openspec', 'changes', 'tdd-direct', '.comet.yaml'),
+      'utf-8',
+    );
+
+    expect(result.status).toBe(0);
+    expect(yaml).toContain('tdd_mode: direct');
+  }, 20_000);
+
+  it('rejects invalid tdd_mode from .comet/config.yaml when initializing a change', async () => {
+    await writeFile(path.join(tmpDir, '.comet', 'config.yaml'), 'tdd_mode: sometimes\n');
+
+    const result = runBash(tmpDir, stateScript, ['init', 'tdd-invalid', 'full']);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Invalid tdd_mode from .comet/config.yaml: 'sometimes'");
+    expect(result.stderr).toContain('Valid values: tdd, direct');
+  }, 20_000);
+
   it('rejects invalid review_mode from .comet/config.yaml when initializing a change', async () => {
     await writeFile(path.join(tmpDir, '.comet', 'config.yaml'), 'review_mode: noisy\n');
 

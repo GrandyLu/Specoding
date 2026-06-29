@@ -54,6 +54,14 @@ CodeGraph 可用后，在项目根目录运行：
 $COMET_CODEGRAPH_CONTEXT_FILE
 ```
 
+CodeGraph 上下文生成后，生成或刷新架构图：
+
+```bash
+comet viz . --yes
+```
+
+该命令必须成功并写入 `.codegraph/architecture.mmd`，然后才能继续 OpenSpec explore。
+
 后续 OpenSpec explore 必须优先读取该文件。尤其要先查看 `Relationship Analysis` 小节，用 `callers` / `callees` / `impact` 结果判断调用归属；不要仅凭文件名或 `query` 搜索结果推断。若对象方法或动态调用没有被 CodeGraph 关系命令索引，继续查看 `Targeted Source Excerpts` 小节，该小节只截取 CodeGraph 指向的 `file:line` 附近源码。不要全量扫描仓库源码。
 
 ### 2. 调用 OpenSpec Explore
@@ -74,6 +82,7 @@ Inputs: $COMET_CODEGRAPH_CONTEXT_FILE。必须优先使用其中的 Relationship
 
 - `codegraph index` 已成功运行
 - `$COMET_CODEGRAPH_CONTEXT_FILE` 已生成并被用作主要输入
+- `.codegraph/architecture.mmd` 已生成，且至少包含一个架构节点
 - 已调用 `openspec-explore`
 - 已产出或更新存量项目 spec 草稿
 - 对未确认推断、缺失测试或代码结构盲区给出清单

@@ -426,6 +426,7 @@ Project-level `.comet/config.yaml` controls defaults and skill hooks that are no
 
 ```yaml
 context_compression: off
+tdd_mode: tdd
 review_mode: thorough
 context_skills: []   # design/build implementation context, for example component-library skills
 review_skills: []    # review-only rules loaded before code review

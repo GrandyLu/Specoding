@@ -2,6 +2,8 @@ workflow: full
 phase: archive
 build_mode: subagent-driven-development
 build_pause: null
+tdd_mode: tdd
+review_mode: thorough
 isolation: branch
 verify_mode: full
 auto_transition: true

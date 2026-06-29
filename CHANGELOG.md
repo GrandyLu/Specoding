@@ -12,6 +12,9 @@ All notable changes to @rpamis/comet will be documented in this file.
 
 ### Changed
 
+- **Project TDD default**: Generated `.comet/config.yaml` now explicitly includes `tdd_mode: tdd`, and new full-workflow changes snapshot the configured `tdd|direct` value alongside `review_mode` instead of relying on an invisible hard-coded default.
+- **Existing-project architecture scan**: `/comet-scan` now generates `.codegraph/architecture.mmd` after building CodeGraph context, so scanning an existing repository produces both specification evidence and a current architecture view.
+- **CodeGraph-backed architecture structure**: Mermaid generation now falls back to indexed file, language, and symbol metadata when route or call relationships are unavailable, producing meaningful module nodes instead of a styles-only diagram.
 - **Archive architecture refresh**: Successful archives now regenerate `.codegraph/architecture.mmd` after synchronizing CodeGraph so the Mermaid architecture view stays aligned with completed changes; refresh failures warn without undoing an otherwise completed archive.
 - **CodeGraph sync guidance**: Updated archive and workflow skills so agents refresh CodeGraph context after spec/archive changes and treat CodeGraph evidence as an explicit project artifact.
 - **Full workflow quality defaults**: Full workflow changes now default to `tdd_mode: tdd` and `review_mode: thorough`, while hotfix/tweak presets keep their lighter direct/off defaults; English and Chinese build guidance now describe the same override and review-gate behavior.
@@ -19,11 +22,14 @@ All notable changes to @rpamis/comet will be documented in this file.
 
 ### Fixed
 
+- **Empty Mermaid success result**: Architecture generation now fails when no nodes can be produced instead of reporting a valid but unusable empty diagram.
 - **Git hook portability**: Pre-commit now invokes the local `lint-staged` binary directly so GUI/IDE commit environments without global `pnpm` in `PATH` can still run the staged-file formatter.
 - **OpenSpec handoff consistency**: `comet-guard.sh` now validates Design Doc `canonical_spec_hash` against the current OpenSpec handoff hash, blocking stale Superpowers design docs when OpenSpec artifacts drift.
 
 ### Tests
 
+- **TDD default regression coverage**: Added project-config generation, full-change snapshot, invalid-value rejection, and legacy example-state coverage for explicit `tdd_mode` defaults.
+- **Architecture content regression coverage**: Added tests for scan-time Mermaid generation, CodeGraph module summaries, hierarchy edges, and rejection of empty indexed structures.
 - **Mermaid refresh regression coverage**: Added `comet viz`, init reuse, archive success/failure, and bilingual Skill contract coverage for automatic architecture refresh.
 - **CodeGraph and handoff regression coverage**: Added tests for `/comet-scan` assets, CodeGraph context script packaging, architecture diagram generation, `comet init --skip-viz`, project skill config defaults, and canonical handoff hash guard behavior.
 - **Project skill hook routing coverage**: Added regression checks that keep `context_skills` and `review_skills` separated across design, build, verify, and subagent review flows.

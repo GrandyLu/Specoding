@@ -517,6 +517,7 @@ export async function initCommand(targetPath: string, options: InitOptions = {})
             layer2: 'Components',
             layer3: 'Shared',
             callgraph: 'CallGraph',
+            structure: 'Structure',
           };
           return names[layer as keyof typeof names] || layer;
         })

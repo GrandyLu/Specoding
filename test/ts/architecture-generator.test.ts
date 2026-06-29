@@ -1,10 +1,25 @@
 // test/ts/architecture-generator.test.ts
 
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import fs from 'fs/promises';
+import { execFileSync } from 'child_process';
 
 // Mock fs 模块
 vi.mock('fs/promises');
+vi.mock('child_process', () => ({ execFileSync: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(execFileSync).mockReturnValue(
+    JSON.stringify([
+      {
+        path: 'src/core/example.ts',
+        language: 'typescript',
+        nodeCount: 4,
+        size: 500,
+      },
+    ]),
+  );
+});
 
 describe('Architecture Generator - Project Type Detection', () => {
   describe('detectProjectType', () => {
@@ -120,17 +135,48 @@ describe('Architecture Generator - Call Graph', () => {
       expect(mermaid).toContain('classDef');
     });
 
-    it('should apply color coding by layer', async () => {
+    it('should apply color coding to indexed modules when call edges are unavailable', async () => {
       vi.spyOn(fs, 'access').mockResolvedValue(undefined as never);
       vi.spyOn(fs, 'stat').mockResolvedValue({ isDirectory: () => true } as never);
 
       const { generateCallGraphDiagram } = await import('../../src/core/architecture-generator');
       const mermaid = await generateCallGraphDiagram('/test', '/test/codegraph.db');
-      expect(mermaid).toContain('controllerStyle');
-      expect(mermaid).toContain('serviceStyle');
-      expect(mermaid).toContain('databaseStyle');
-      expect(mermaid).toContain('utilityStyle');
+      expect(mermaid).toContain('projectStyle');
+      expect(mermaid).toContain('moduleStyle');
+      expect(mermaid).toContain('src/core');
     });
+  });
+});
+
+describe('Architecture Generator - Indexed Structure', () => {
+  it('should generate module nodes and hierarchy edges from CodeGraph files', async () => {
+    const { generateIndexedArchitectureDiagram } = await import(
+      '../../src/core/architecture-generator'
+    );
+
+    const mermaid = generateIndexedArchitectureDiagram([
+      { path: 'src/commands/init.ts', language: 'typescript', nodeCount: 12, size: 1200 },
+      { path: 'src/commands/viz.ts', language: 'typescript', nodeCount: 4, size: 500 },
+      { path: 'src/core/codegraph.ts', language: 'typescript', nodeCount: 8, size: 900 },
+      { path: 'test/ts/viz.test.ts', language: 'typescript', nodeCount: 3, size: 400 },
+    ]);
+
+    expect(mermaid).toContain('graph TD');
+    expect(mermaid).toContain('src/commands');
+    expect(mermaid).toContain('2 files');
+    expect(mermaid).toContain('16 symbols');
+    expect(mermaid).toContain('src/core');
+    expect(mermaid).toMatch(/Project --> Module_/u);
+  });
+
+  it('should reject an indexed structure with no files', async () => {
+    const { generateIndexedArchitectureDiagram } = await import(
+      '../../src/core/architecture-generator'
+    );
+
+    expect(() => generateIndexedArchitectureDiagram([])).toThrow(
+      'CodeGraph index contains no files',
+    );
   });
 });
 
@@ -330,7 +376,7 @@ describe('Architecture Generator - Main Entry', () => {
       const { generateArchitectureDiagram } = await import('../../src/core/architecture-generator');
       const result = await generateArchitectureDiagram('/test/frontend', true);
       expect(result.success).toBe(true);
-      expect(result.layers).toContain('layer1');
+      expect(result.layers).toContain('structure');
     });
 
     it('should generate diagram for non-frontend project', async () => {
@@ -352,7 +398,7 @@ describe('Architecture Generator - Main Entry', () => {
       const { generateArchitectureDiagram } = await import('../../src/core/architecture-generator');
       const result = await generateArchitectureDiagram('/test/backend', true);
       expect(result.success).toBe(true);
-      expect(result.layers).toContain('callgraph');
+      expect(result.layers).toContain('structure');
     });
 
     it('should handle missing codegraph.db gracefully', async () => {

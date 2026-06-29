@@ -71,6 +71,8 @@ describe('init command helpers', () => {
       expect(config).toContain('context_compression: off');
       expect(config).toContain('# review_mode: off | standard | thorough');
       expect(config).toContain('review_mode: thorough');
+      expect(config).toContain('# tdd_mode: tdd | direct');
+      expect(config).toContain('tdd_mode: tdd');
       expect(config).toContain('# context_skills: project skills loaded before design/build implementation');
       expect(config).toContain('context_skills: []');
       expect(config).toContain('# review_skills: project skills loaded only before code review');
@@ -80,6 +82,24 @@ describe('init command helpers', () => {
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  it('keeps the archived scan demo quality modes explicit', async () => {
+    const yaml = await fs.readFile(
+      path.resolve(
+        'examples',
+        'comet-scan-demo',
+        'openspec',
+        'changes',
+        'archive',
+        '2026-06-10-focus-queue',
+        '.comet.yaml',
+      ),
+      'utf-8',
+    );
+
+    expect(yaml).toContain('tdd_mode: tdd');
+    expect(yaml).toContain('review_mode: thorough');
   });
 
   it('installs manifest-driven Pi slash commands and preserves existing settings', async () => {

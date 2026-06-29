@@ -14,6 +14,10 @@ describe('vizCommand', () => {
       path.join(tmpDir, 'package.json'),
       JSON.stringify({ name: 'frontend-fixture', dependencies: { react: '^18.0.0' } }),
     );
+    await fs.writeFile(
+      path.join(tmpDir, 'src', 'routes.ts'),
+      "export const routes = [{ path: '/home', component: 'HomePage' }];\n",
+    );
   });
 
   afterEach(async () => {

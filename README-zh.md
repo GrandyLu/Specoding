@@ -404,6 +404,7 @@ full workflow 初始化时 `build_mode`、`build_pause`、`isolation`、`verify_
 
 ```yaml
 context_compression: off
+tdd_mode: tdd
 review_mode: thorough
 context_skills: []   # design/build 实现上下文，例如组件库 skill
 review_skills: []    # 只在代码审查前加载的 review 规则

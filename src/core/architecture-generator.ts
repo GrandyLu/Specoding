@@ -2,6 +2,8 @@
 
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { execFileSync } from 'child_process';
+import { resolveCodegraphCommand } from './codegraph.js';
 
 // 项目类型
 export type ProjectType = 'frontend' | 'non-frontend';
@@ -11,6 +13,7 @@ export {
   detectProjectType,
   generateLayer1Diagram,
   generateCallGraphDiagram,
+  generateIndexedArchitectureDiagram,
   validateMermaidSyntax,
   applyStandardizedNamespace,
   applyFrontendColorCoding,
@@ -20,7 +23,7 @@ export {
 };
 
 // 图层类型
-export type LayerType = 'layer1' | 'layer2' | 'layer3' | 'callgraph';
+export type LayerType = 'layer1' | 'layer2' | 'layer3' | 'callgraph' | 'structure';
 
 // Mermaid 节点样式
 export type NodeType = 'route' | 'page' | 'component' | 'controller' | 'service' | 'database';
@@ -92,6 +95,13 @@ export interface GenerationResult {
   nodeCount: number;
   outputPath: string;
   errors: string[];
+}
+
+export interface IndexedFile {
+  path: string;
+  language: string;
+  nodeCount: number;
+  size: number;
 }
 
 /**
@@ -173,6 +183,85 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
     chunks.push(array.slice(i, i + chunkSize));
   }
   return chunks;
+}
+
+function escapeMermaidLabel(value: string): string {
+  return value.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
+}
+
+function modulePathForFile(filePath: string): string {
+  const normalized = filePath.replace(/\\/gu, '/').replace(/^\.\//u, '');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length <= 1) return '(root)';
+  return parts.slice(0, Math.min(2, parts.length - 1)).join('/');
+}
+
+function generateIndexedArchitectureDiagram(files: IndexedFile[]): string {
+  if (files.length === 0) {
+    throw new Error('CodeGraph index contains no files');
+  }
+
+  const modules = new Map<string, { files: number; symbols: number; languages: Set<string> }>();
+  for (const file of files) {
+    const modulePath = modulePathForFile(file.path);
+    const summary = modules.get(modulePath) ?? {
+      files: 0,
+      symbols: 0,
+      languages: new Set<string>(),
+    };
+    summary.files += 1;
+    summary.symbols += file.nodeCount;
+    if (file.language) summary.languages.add(file.language);
+    modules.set(modulePath, summary);
+  }
+
+  let mermaid = 'graph TD\n\n';
+  mermaid += '  classDef projectStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;\n';
+  mermaid += '  classDef moduleStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;\n\n';
+  mermaid += `  Project["Project\\n${files.length} indexed files"]:::projectStyle\n`;
+
+  [...modules.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .forEach(([modulePath, summary], index) => {
+      const moduleId = `Module_${index}`;
+      const languages = [...summary.languages].sort().join(', ') || 'unknown';
+      const label = `${modulePath}\\n${summary.files} files · ${summary.symbols} symbols\\n${languages}`;
+      mermaid += `  ${moduleId}["${escapeMermaidLabel(label)}"]:::moduleStyle\n`;
+      mermaid += `  Project --> ${moduleId}\n`;
+    });
+
+  return mermaid;
+}
+
+function loadIndexedFiles(projectPath: string): IndexedFile[] {
+  try {
+    const codegraphCommand = resolveCodegraphCommand();
+    if (!codegraphCommand) {
+      throw new Error('CodeGraph CLI is not available');
+    }
+    const output = execFileSync(codegraphCommand, ['files', '--path', projectPath, '--json'], {
+      cwd: projectPath,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30_000,
+      shell: process.platform === 'win32',
+    });
+    const parsed = JSON.parse(output) as unknown;
+    if (!Array.isArray(parsed)) throw new Error('unexpected JSON response');
+    return parsed.filter(
+      (file): file is IndexedFile =>
+        typeof file === 'object' &&
+        file !== null &&
+        typeof (file as IndexedFile).path === 'string' &&
+        typeof (file as IndexedFile).language === 'string' &&
+        typeof (file as IndexedFile).nodeCount === 'number' &&
+        typeof (file as IndexedFile).size === 'number',
+    );
+  } catch (error) {
+    throw new Error(`Failed to read CodeGraph indexed files: ${(error as Error).message}`, {
+      cause: error,
+    });
+  }
 }
 
 /**
@@ -490,6 +579,9 @@ function generateSingleCallGraphDiagram(layered: LayeredCallGraph): string {
  */
 async function generateCallGraphDiagram(projectPath: string, dbPath: string): Promise<string> {
   const callGraph = await queryCallGraph(dbPath);
+  if (callGraph.length === 0) {
+    return generateIndexedArchitectureDiagram(loadIndexedFiles(projectPath));
+  }
   const layered = layerCallGraph(callGraph);
   const chunks = chunkCallGraph(layered, 18);
 
@@ -731,18 +823,26 @@ async function executeNonInteractiveGeneration(
 
     if (projectType === 'frontend') {
       layer1Mermaid = await generateLayer1Diagram(projectPath);
-      result.layers.push('layer1');
+      if (countNodes(layer1Mermaid) === 0) {
+        layer1Mermaid = generateIndexedArchitectureDiagram(loadIndexedFiles(projectPath));
+        result.layers.push('structure');
+      } else {
+        result.layers.push('layer1');
+      }
     } else {
       const dbPath = await checkCodeGraphDatabase(projectPath);
       layer1Mermaid = await generateCallGraphDiagram(projectPath, dbPath);
-      result.layers.push('callgraph');
+      result.layers.push('structure');
     }
 
     // 应用 Mermaid 规范
     const normalized = applyMermaidStandards(layer1Mermaid, projectType, 'Project');
 
-    await writeFile(outputPath, normalized, 'utf-8');
     result.nodeCount = countNodes(normalized);
+    if (result.nodeCount === 0) {
+      throw new Error('Architecture diagram contains no nodes');
+    }
+    await writeFile(outputPath, normalized, 'utf-8');
     result.success = true;
 
     return result;

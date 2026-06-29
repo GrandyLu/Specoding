@@ -752,6 +752,8 @@ async function createWorkingDirs(projectPath: string): Promise<void> {
       [
         '# context_compression: off | beta',
         'context_compression: off',
+        '# tdd_mode: tdd | direct',
+        'tdd_mode: tdd',
         '# review_mode: off | standard | thorough',
         'review_mode: thorough',
         '# context_skills: project skills loaded before design/build implementation',

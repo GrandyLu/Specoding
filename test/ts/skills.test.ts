@@ -442,6 +442,22 @@ describe('skills', () => {
   });
 
   describe('Chinese Comet workflow safeguards', () => {
+    it('refreshes the architecture Mermaid diagram during existing-project scans', async () => {
+      const zhScan = await fs.readFile(
+        path.resolve('assets', 'skills-zh', 'comet-scan', 'SKILL.md'),
+        'utf-8',
+      );
+      const enScan = await fs.readFile(
+        path.resolve('assets', 'skills', 'comet-scan', 'SKILL.md'),
+        'utf-8',
+      );
+
+      expect(zhScan).toContain('comet viz . --yes');
+      expect(enScan).toContain('comet viz . --yes');
+      expect(zhScan).toContain('`.codegraph/architecture.mmd` 已生成');
+      expect(enScan).toContain('`.codegraph/architecture.mmd` was generated');
+    });
+
     it('requires OpenSpec instructions for each standard open artifact', async () => {
       const zhOpen = await fs.readFile(
         path.resolve('assets', 'skills-zh', 'comet-open', 'SKILL.md'),

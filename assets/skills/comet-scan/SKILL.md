@@ -54,6 +54,14 @@ This script runs `codegraph init` (which automatically builds the index in the l
 $COMET_CODEGRAPH_CONTEXT_FILE
 ```
 
+After the CodeGraph context is ready, generate or refresh the architecture diagram:
+
+```bash
+comet viz . --yes
+```
+
+The command must succeed and write `.codegraph/architecture.mmd` before continuing to OpenSpec exploration.
+
 OpenSpec explore must use that file as the primary input. In particular, inspect the `Relationship Analysis` section first and use `callers` / `callees` / `impact` output to attribute behavior to the correct caller. Do not infer from file names or `query` output alone. If object methods or dynamic calls are not indexed by CodeGraph relationship commands, continue to the `Targeted Source Excerpts` section; it includes only source snippets around CodeGraph-reported `file:line` references. Do not scan the whole repository source.
 
 ### 2. Invoke OpenSpec Explore
@@ -74,6 +82,7 @@ During exploration, start from the structural entry points, symbol search result
 
 - `codegraph index` has run successfully
 - `$COMET_CODEGRAPH_CONTEXT_FILE` has been generated and used as the primary input
+- `.codegraph/architecture.mmd` was generated with at least one architecture node
 - `openspec-explore` has been invoked
 - Existing-project spec draft has been created or updated
 - Unknowns, unverified inferences, missing tests, or code-structure blind spots are listed

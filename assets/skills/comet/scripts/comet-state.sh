@@ -262,6 +262,30 @@ project_review_mode_default() {
   esac
 }
 
+project_tdd_mode_default() {
+  local value="tdd"
+  local source="default"
+  if [ -f ".comet/config.yaml" ]; then
+    local raw
+    raw=$(yaml_field "tdd_mode" ".comet/config.yaml" 2>/dev/null || true)
+    if [ -n "$raw" ]; then
+      value="$raw"
+      source=".comet/config.yaml"
+    fi
+  fi
+
+  case "$value" in
+    tdd|direct)
+      printf '%s\n' "$value"
+      ;;
+    *)
+      red "ERROR: Invalid tdd_mode from ${source}: '$value'" >&2
+      red "Valid values: tdd, direct" >&2
+      exit 1
+      ;;
+  esac
+}
+
 # --- Subcommands ---
 
 cmd_init() {
@@ -285,7 +309,7 @@ cmd_init() {
   mkdir -p "$change_dir"
 
   # Set workflow-appropriate defaults
-  local phase build_mode isolation verify_mode context_compression auto_transition review_mode
+  local phase build_mode isolation verify_mode context_compression auto_transition tdd_mode review_mode
   phase="open"
   context_compression=$(project_context_compression)
   auto_transition="$(project_auto_transition_default)"
@@ -293,7 +317,7 @@ cmd_init() {
   case "$workflow" in
     full)
       build_mode="null"
-      tdd_mode="tdd"
+      tdd_mode="$(project_tdd_mode_default)"
       review_mode="$(project_review_mode_default)"
       isolation="null"
       verify_mode="null"
